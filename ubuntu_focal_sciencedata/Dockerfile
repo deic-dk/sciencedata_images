@@ -1,23 +1,31 @@
 # Build command: docker build -t sciencedata/ubuntu_focal_sciencedata .
+# Run command: docker run -p 8080:80 -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key sciencedata/ubuntu_focal_sciencedata
 
-FROM       ubuntu:20.04
+FROM ubuntu:20.04
 MAINTAINER Frederik Orellana "https://github.com/deltafunction"
 
 LABEL vendor="sciencedata.dk"
 LABEL version="1.0"
-LABEL description="Ubuntu Focal \
-with support for deployment on sciencedata.dk."
+LABEL description="Ubuntu Focal for deployment on sciencedata.dk"
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get update
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install ca-certificates
 
 # Add universe
 RUN echo "deb http://dk.archive.ubuntu.com/ubuntu focal universe" >> /etc/apt/sources.list
 # Add Caddy
-RUN echo "deb [trusted=yes] https://apt.fury.io/caddy/ /" | sudo tee -a /etc/apt/sources.list.d/caddy-fury.list
+RUN echo "deb [trusted=yes] https://apt.fury.io/caddy/ /" | tee -a /etc/apt/sources.list.d/caddy-fury.list
 
-RUN apt-get update
+RUN apt update
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang \
 apt-transport-https wget jq nfs-common caddy php-cli php-fpm
+
+# Configure caddy
+RUN cp -a /usr/share/caddy /root/html
+RUN cp -a /etc/caddy/Caddyfile /root/
+RUN sed -E -i 's|^root \* /usr/share/caddy|root * /root/html|' /root/Caddyfile
 
 # Configure locale
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales
@@ -30,18 +38,26 @@ RUN locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
 #RUN DEBIAN_FRONTEND=noninteractive apt-get -y install console-data
 
 RUN mkdir /var/run/sshd
-RUN mkdir /root/.ssh
 
-RUN echo 'root:root' | chpasswd
+# Assuming /root is nfs-mounted, configure
+RUN echo "alias ls='ls --color=auto'" >> .bashrc
+RUN mkdir /root/.ssh
+RUN touch /root/.ssh/authorized_keys
+RUN chmod -R go-rw /root/.ssh
 
 RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
-
-RUN mkdir /root/.ssh
 
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 EXPOSE 22
+EXPOSE 80
+# Caddy runs admin endpoint on port 2019
+#EXPOSE 2019
 
-CMD    ["/usr/sbin/sshd", "-D"]
+#CMD ["/usr/sbin/sshd", "-D"]
+
+ENTRYPOINT if [ -n "$SSH_PUBLIC_KEY" ]; then echo "$SSH_PUBLIC_KEY" >> \
+/root/.ssh/authorized_keys; else echo "root:$ROOT_PASSWORD" | chpasswd; fi && \
+cd /root && /usr/bin/caddy start && /usr/sbin/sshd -D
