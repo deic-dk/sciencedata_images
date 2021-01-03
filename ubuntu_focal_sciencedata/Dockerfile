@@ -23,9 +23,9 @@ bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git g
 apt-transport-https wget jq nfs-common caddy php-cli php-fpm
 
 # Configure caddy
-RUN cp -a /usr/share/caddy /root/html
-RUN cp -a /etc/caddy/Caddyfile /root/
-RUN sed -E -i 's|^root \* /usr/share/caddy|root * /root/html|' /root/Caddyfile
+ADD Caddyfile /root/Caddyfile
+ADD index.php /root/index.php
+RUN chmod go+rx /root/
 
 # Configure locale
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales
@@ -39,7 +39,7 @@ RUN locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
 
 RUN mkdir /var/run/sshd
 
-# Assuming /root is nfs-mounted, configure
+# Configure ssh access
 RUN echo "alias ls='ls --color=auto'" >> .bashrc
 RUN mkdir /root/.ssh
 RUN touch /root/.ssh/authorized_keys
@@ -60,4 +60,5 @@ EXPOSE 80
 
 ENTRYPOINT if [ -n "$SSH_PUBLIC_KEY" ]; then echo "$SSH_PUBLIC_KEY" >> \
 /root/.ssh/authorized_keys; else echo "root:$ROOT_PASSWORD" | chpasswd; fi && \
-cd /root && /usr/bin/caddy start && /usr/sbin/sshd -D
+( test -e "/root/www/$HOSTNAME" || mkdir -p "/root/www/$HOSTNAME" && mv /root/index.php "/root/www/$HOSTNAME" ) && \
+service php7.4-fpm start && cd /root && /usr/bin/caddy start && /usr/sbin/sshd -D
