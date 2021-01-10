@@ -25,6 +25,8 @@ apt-transport-https wget jq nfs-common caddy php-cli php-fpm
 # Configure caddy
 ADD Caddyfile /root/Caddyfile
 ADD index.php /root/index.php
+ADD start.sh /root/start.sh
+RUN chmod +x /root/start.sh
 RUN chmod go+rx /root/
 
 # Configure locale
@@ -57,8 +59,5 @@ EXPOSE 80
 #EXPOSE 2019
 
 #CMD ["/usr/sbin/sshd", "-D"]
-
-ENTRYPOINT if [ -n "$SSH_PUBLIC_KEY" ]; then echo "$SSH_PUBLIC_KEY" >> \
-/root/.ssh/authorized_keys; else echo "root:$ROOT_PASSWORD" | chpasswd; fi && \
-( test -e "/root/www/$HOSTNAME" || mkdir -p "/root/www/$HOSTNAME" && mv /root/index.php "/root/www/$HOSTNAME" ) && \
-service php7.4-fpm start && cd /root && /usr/bin/caddy start && /usr/sbin/sshd -D
+#ENTRYPOINT ["/root/start.sh"]
+CMD ["/root/start.sh"]
