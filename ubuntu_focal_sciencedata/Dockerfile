@@ -1,5 +1,6 @@
 # Build command: docker build -t sciencedata/ubuntu_focal_sciencedata .
 # Run command: docker run -p 8080:80 -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key sciencedata/ubuntu_focal_sciencedata
+# Run command: docker run -p 8080:80 -p 4022:22 -e SSH_PUBLIC_KEY="`cat ~/.ssh/id_rsa.pub`" sciencedata/ubuntu_focal_sciencedata
 
 FROM ubuntu:20.04
 MAINTAINER Frederik Orellana "https://github.com/deltafunction"
@@ -12,15 +13,15 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install ca-certificates
 
 # Add universe
-RUN echo "deb http://dk.archive.ubuntu.com/ubuntu focal universe" >> /etc/apt/sources.list
+#RUN echo "deb http://dk.archive.ubuntu.com/ubuntu focal universe" >> /etc/apt/sources.list
 # Add Caddy
 RUN echo "deb [trusted=yes] https://apt.fury.io/caddy/ /" | tee -a /etc/apt/sources.list.d/caddy-fury.list
 
 RUN apt update
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server openssh-client net-tools inetutils-tools curl \
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang \
-apt-transport-https wget jq nfs-common caddy php-cli php-fpm
+apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear
 
 # Configure caddy
 ADD Caddyfile /root/Caddyfile
@@ -47,8 +48,8 @@ RUN mkdir /root/.ssh
 RUN touch /root/.ssh/authorized_keys
 RUN chmod -R go-rw /root/.ssh
 
-RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
+#RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+#RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
 
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

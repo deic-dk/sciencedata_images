@@ -10,4 +10,4 @@ mkdir -p "/root/www/$HOSTNAME" && mv /root/index.php "/root/www/$HOSTNAME"
 service php7.4-fpm start
 cd /root
 /usr/bin/caddy start
-/usr/sbin/sshd -D
+/usr/sbin/dropbear -p 22 -W 65536 -F -E
