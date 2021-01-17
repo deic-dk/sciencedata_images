@@ -216,10 +216,11 @@
 					<li>Fire up your favorite file-transter client (we recommend <a href="https://cyberduck.io/">CyberDuck <img src="//cdn.cyberduck.io/img/cyberduck-icon-64.png" class="img-responsive" title="Cyberduck" width="18px" height="18px"></a>) and point it to one of
 						<ul>
 							<li><code>https://sciencedata.dk/storage/www/<?php printf(trim(`hostname`));?>/</code></li>
-							<li><code>sftp://kube.sciencedata.dk:<?php printf(`printf $SSH_PORT`);?>/www/<?php printf(trim(`hostname`));?>/</code></li>
+							<!--<li><code>sftp://kube.sciencedata.dk:<?php printf(`printf $SSH_PORT`);?>/root/www/<?php printf(trim(`hostname`));?>/</code></li>-->
 						</ul>
 					</li>
-					<li>In the first case, make sure you choose WebDAV as protocol, then log in with your ScienceData username and <a href="https://sciencedata.dk/sites/user/ManagingFiles/index#toc_head11">device password</a>, in the second case, log in with username <code>root</code> and your SSH key.
+					<li>Make sure you choose WebDAV (HTTPS) as protocol, then log in with your ScienceData username and <a href="https://sciencedata.dk/sites/user/ManagingFiles/index#toc_head11">device password</a>.
+					<!--In the second case, log in with username <code>root</code> and your SSH key.-->
 					</li>
 					<li>Upload your site's files.
 					<li>Visit your site!</li>
@@ -229,7 +230,7 @@
 					Awesome! You won't have to look at this slanted page anymore.
 				</p>
 				<p>
-					The web server we use is called Caddy. This site is served by one Caddie server over http to another Caddie server, running as reverse proxy on <code>kube.sciencedata.dk</code> and serving over https to the outside world.You can read more about Caddie in the <a href="https://caddyserver.com/docs/">📖 Caddy documentation</a>. Have fun!
+					The web server we use is called Caddy. This site is served by one Caddie server over http to another Caddie server, running as reverse proxy on <code>kube.sciencedata.dk</code> and serving over https to the outside world. You can read more about Caddie in the <a href="https://caddyserver.com/docs/">📖 Caddy documentation</a>. Have fun!
 				</p>
 
 				<h2>If that didn't work 😶</h2>
