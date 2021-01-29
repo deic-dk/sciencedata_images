@@ -21,7 +21,7 @@ RUN apt update
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang \
-apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear
+apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear iputils-ping traceroute
 
 # Configure caddy
 ADD Caddyfile /root/Caddyfile
