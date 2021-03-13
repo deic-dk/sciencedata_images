@@ -29,12 +29,14 @@ touch /var/run/sciencedata_software
 
 END
 
-if [[ -n $MMA_LICENSE_SERVER ]]; then
+if [[ -n $LICENSE_SERVER ]]; then
 	cd
-	mkdir -p .Mathematica/Licensing
-	echo '!'"${LICENSE_SERVER}" > .Mathematica/Licensing/mathpass
+	mkdir -p ~/.Mathematica/Licensing
+	echo '!'"${LICENSE_SERVER}" > ~/.Mathematica/Licensing/mathpass
 	wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=/usr/local/software/Wolfram/Mathematica/12.1/Executables/WolframKernel
-	~/WolframLanguageForJupyter/configure-jupyter.wls add
-	mv ~/WolframLanguageForJupyter /tmp/
+	# This takes a long time (it's apparently running some license unprotect stuff with Wolfram HQ)
+	# So we run it in the background
+	~/WolframLanguageForJupyter/configure-jupyter.wls add &
+	#mv ~/WolframLanguageForJupyter /tmp/
 fi
 
