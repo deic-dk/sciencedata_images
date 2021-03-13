@@ -36,7 +36,6 @@ if [[ -n $LICENSE_SERVER ]]; then
 	wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=/usr/local/software/Wolfram/Mathematica/12.1/Executables/WolframKernel
 	# This takes a long time (it's apparently running some license unprotect stuff with Wolfram HQ)
 	# So we run it in the background
-	~/WolframLanguageForJupyter/configure-jupyter.wls add &
-	#mv ~/WolframLanguageForJupyter /tmp/
+	( ~/WolframLanguageForJupyter/configure-jupyter.wls add && mv ~/WolframLanguageForJupyter /tmp/ ) &
 fi
 
