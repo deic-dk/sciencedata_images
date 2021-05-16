@@ -23,7 +23,7 @@ RUN apt update
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang duck cron \
-apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear iputils-ping traceroute php-yaml
+apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear iputils-ping traceroute
 
 RUN DEBIAN_FRONTEND=noninteractive apt-key adv --keyserver keyserver.ubuntu.com --recv-keys FE7097963FEFBE72
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y duck
