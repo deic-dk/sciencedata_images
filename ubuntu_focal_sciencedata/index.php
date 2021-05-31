@@ -230,7 +230,7 @@
 					Awesome! You won't have to look at this slanted page anymore.
 				</p>
 				<p>
-					The web server we use is called Caddy. This site is served by one Caddie server over http to another Caddie server, running as reverse proxy on <code>kube.sciencedata.dk</code> and serving over https to the outside world. You can read more about Caddie in the <a href="https://caddyserver.com/docs/">📖 Caddy documentation</a>. Have fun!
+					The web server we use is called Caddy. This site is served by one Caddy server over http to another Caddy server, running as reverse proxy on <code>kube.sciencedata.dk</code> and serving over https to the outside world. You can read more about Caddy in the <a href="https://caddyserver.com/docs/">📖 Caddy documentation</a>. Have fun!
 				</p>
 
 				<h2>If that didn't work 😶</h2>
