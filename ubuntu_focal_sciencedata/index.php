@@ -213,7 +213,7 @@
 					Caddy is ready to serve your site:
 				</p>
 				<ol>
-					<li>Fire up your favorite file-transter client (we recommend <a href="https://cyberduck.io/">CyberDuck <img src="//cdn.cyberduck.io/img/cyberduck-icon-64.png" class="img-responsive" title="Cyberduck" width="18px" height="18px"></a>) and point it to one of
+					<li>Fire up your favorite file-transter client (we recommend <a href="https://cyberduck.io/">CyberDuck <img src="//cdn.cyberduck.io/img/cyberduck-icon-64.png" class="img-responsive" title="Cyberduck" width="18px" height="18px"></a>) and point it to
 						<ul>
 							<li><code>https://sciencedata.dk/storage/www/<?php printf(trim(`hostname`));?>/</code></li>
 							<!--<li><code>sftp://kube.sciencedata.dk:<?php printf(`printf $SSH_PORT`);?>/root/www/<?php printf(trim(`hostname`));?>/</code></li>-->
