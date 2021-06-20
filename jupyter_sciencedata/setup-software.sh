@@ -8,6 +8,7 @@ sudo bash<<END
 
 # Keep notebooks in sciencedata homedir
 export PATH=/opt/conda/bin:$PATH
+pip install webdavclient3
 git clone https://github.com/deic-dk/jupyter_sciencedata.git
 pip install jupyter_sciencedata/
 
