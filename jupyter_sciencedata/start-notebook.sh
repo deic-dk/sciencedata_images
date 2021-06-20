@@ -21,7 +21,7 @@ elif [[ ! -z "${JUPYTER_ENABLE_LAB}" ]]; then
     jupyter lab list | grep -E ' *http://[^/]*/(.*token=.*) *' | sed -E 's| *http://[^/]*/(.*token=.*) *|\1|' | tail -1 | awk '{print $1}' > /tmp/URI
     fg
 else
-  echo "WARN: Jupyter Notebook deprecation notice https://github.com/jupyter/docker-stacks#jupyter-notebook-deprecation-notice."
+  #echo "WARN: Jupyter Notebook deprecation notice https://github.com/jupyter/docker-stacks#jupyter-notebook-deprecation-notice."
   (. /usr/local/bin/start.sh $wrapper jupyter notebook "$@")&
   for i in {1..20}; do
     sleep 5
