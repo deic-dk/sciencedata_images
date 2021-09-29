@@ -11,8 +11,8 @@ fi
 [[ -n $HOME_SERVER ]] && echo "$HOME_SERVER	sciencedata" >> /etc/hosts
 [[ -n $HOME_SERVER ]] && echo "*/5 * * * * root grep sciencedata /etc/hosts || echo \"$HOME_SERVER	sciencedata\" >> /etc/hosts" > /etc/cron.d/sciencedata_hosts
 
-test -e "/root/www/$HOSTNAME" || \
-mkdir -p "/root/www/$HOSTNAME" && mv /root/index.php "/root/www/$HOSTNAME"
+test -d "/root/www" || \
+mkdir -p "/root/www" && mv /root/index.php "/root/www/"
 service php7.4-fpm start
 service cron start
 cd /root
