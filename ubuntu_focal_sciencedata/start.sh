@@ -11,6 +11,13 @@ fi
 [[ -n $HOME_SERVER ]] && echo "$HOME_SERVER	sciencedata" >> /etc/hosts
 [[ -n $HOME_SERVER ]] && echo "*/5 * * * * root grep sciencedata /etc/hosts || echo \"$HOME_SERVER	sciencedata\" >> /etc/hosts" > /etc/cron.d/sciencedata_hosts
 
+# Make everything world read/writeable.
+# This is to allow user www on the home silo to modify/delete files/directories in the
+# directory exported and mounted as www.
+# - we anyway only have one user on this system - root.
+umask 000
+echo "umask 000" >> ~/.bashrc
+
 test -d "/root/www" || \
 mkdir -p "/root/www" && mv /root/index.php "/root/www/"
 service php7.4-fpm start
