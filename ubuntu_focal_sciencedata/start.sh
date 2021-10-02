@@ -19,7 +19,7 @@ umask 000
 echo "umask 000" >> ~/.bashrc
 
 test -d "/root/www" || \
-mkdir -p "/root/www" && mv /root/index.php "/root/www/"
+mkdir -p "/root/www" && chmod go+rw "index.php" &&  mv "/root/index.php" "/root/www/"
 service php7.4-fpm start
 service cron start
 cd /root
