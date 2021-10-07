@@ -181,6 +181,8 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     psmisc \
     telnet \
     git \
+    curl \
+    file \
     inkscape \
     libsm6 \
     libxext-dev \

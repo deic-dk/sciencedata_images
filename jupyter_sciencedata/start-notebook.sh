@@ -22,7 +22,7 @@ elif [[ ! -z "${JUPYTER_ENABLE_LAB}" ]]; then
     fg
 else
   #echo "WARN: Jupyter Notebook deprecation notice https://github.com/jupyter/docker-stacks#jupyter-notebook-deprecation-notice."
-  (. /usr/local/bin/start.sh $wrapper jupyter notebook "$@")&
+  (. /usr/local/bin/start.sh $wrapper jupyter notebook --debug "$@" >& /tmp/jupyter.log)&
   for i in {1..20}; do
     sleep 5
     echo $i

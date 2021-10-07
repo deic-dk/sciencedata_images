@@ -12,6 +12,11 @@ pip install webdavclient3
 git clone https://github.com/deic-dk/jupyter_sciencedata.git
 pip install jupyter_sciencedata/
 
+# Spinning wheel on ajax calls
+cp jupyter_sciencedata/custom/* /opt/conda/lib/python3.8/site-packages/notebook/static/custom/
+
+pip install sddk
+
 # Monkey patch python's urllib to not match hostname with certificate
 sed -i 's|and self.assert_hostname is not False|and self.assert_hostname is not False and False|' /opt/conda/lib/python3.8/site-packages/urllib3/connection.py
 
