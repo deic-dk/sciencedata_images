@@ -16,6 +16,9 @@ pip install jupyter_sciencedata/
 cp jupyter_sciencedata/custom/* /opt/conda/lib/python3.8/site-packages/notebook/static/custom/
 
 pip install sddk
+# For now, manually override with updated version
+curl -L -o /opt/conda/lib/python3.8/site-packages/sddk/__init__.py \
+https://raw.githubusercontent.com/deic-dk/sddk_py/master/sddk/__init__.py
 
 # Monkey patch python's urllib to not match hostname with certificate
 sed -i 's|and self.assert_hostname is not False|and self.assert_hostname is not False and False|' /opt/conda/lib/python3.8/site-packages/urllib3/connection.py
