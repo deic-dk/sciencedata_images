@@ -30,6 +30,10 @@ else
     uri=`jupyter notebook list | grep -E ' *http://[^/]*/(.*token=.*) *' | \
       sed -E 's| *http://[^/]*/(.*token=.*) *|\1|' | tail -1 | awk '{print $1}'`
     if [[ -n "$uri" ]]; then
+      if [[ -n "$FILE" ]]; then
+        FILE=`echo $FILE | sed -E 's|^/+||'`
+        uri=`echo $uri | sed "s|?token=|notebooks/$FILE?token=|"`
+      fi
       echo "URI: $uri"
       echo "$uri" > /tmp/URI
       break
