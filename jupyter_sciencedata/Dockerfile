@@ -156,13 +156,13 @@ EXPOSE 80
 ENTRYPOINT ["tini", "-g", "--"]
 CMD ["start-notebook.sh"]
 
+# Fix permissions on /etc/jupyter as root
+USER root
+
 # Copy local files as late as possible to avoid cache busting
 COPY start.sh start-notebook.sh start-singleuser.sh /usr/local/bin/
 # Currently need to have both jupyter_notebook_config and jupyter_server_config to support classic and lab
 COPY jupyter_notebook_config.py /etc/jupyter/
-
-# Fix permissions on /etc/jupyter as root
-USER root
 
 # Prepare upgrade to JupyterLab V3.0 #1205
 RUN sed -re "s/c.NotebookApp/c.ServerApp/g" \
@@ -183,6 +183,7 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     git \
     curl \
     file \
+    zip \
     inkscape \
     libsm6 \
     libxext-dev \
@@ -208,6 +209,13 @@ RUN apt-get update && \
 
 # Switch back to $NB_USER to avoid accidental container runs as root
 USER $NB_UID
+
+# Keep notebooks in sciencedata homedir
+RUN pip install webdavclient3
+#RUN git clone https://github.com/deic-dk/jupyter_sciencedata.git
+ADD https://api.github.com/repos/deic-dk/jupyter_sciencedata/git/refs/heads/main version.json
+RUN git clone -b main https://github.com/deic-dk/jupyter_sciencedata.git
+RUN pip install jupyter_sciencedata/
 
 # Install Python 3 packages
 RUN conda install --quiet --yes \
@@ -354,5 +362,53 @@ RUN chmod +x /usr/local/bin/start-notebook.d/*
 
 USER $NB_UID
 
+# TOC extension
+RUN echo "export PATH=$PATH:~/.local/bin" >> ~/.bashrc
+RUN conda install --quiet --yes jupyter_contrib_nbextensions
 
+RUN jupyter contrib nbextension install --user
+RUN jupyter nbextension enable toc2/main
+RUN jupyter nbextension enable autosavetime/main
+RUN jupyter nbextension enable equation-numbering/main
+
+# Patch to default to 0/off - and yeah - what a bonty of duplicated code... It seems the last one is the one actually loaded.
+RUN sed -i 's|default: 2|default: 0|' '/opt/conda/share/jupyter/nbextensions/autosavetime/autosavetime.yaml'
+RUN sed -i 's|autosavetime_starting_interval : 2,|autosavetime_starting_interval : 0,|' '/opt/conda/share/jupyter/nbextensions/autosavetime/main.js'
+RUN sed -i 's|2 (\(default\))|2|' '/opt/conda/share/jupyter/nbextensions/autosavetime/main.js'
+
+RUN sed -i 's|default: 2|default: 0|' '/opt/conda/lib/python3.8/site-packages/jupyter_contrib_nbextensions/nbextensions/autosavetime/autosavetime.yaml'
+RUN sed -i 's|autosavetime_starting_interval : 2,|autosavetime_starting_interval : 0,|' '/opt/conda/lib/python3.8/site-packages/jupyter_contrib_nbextensions/nbextensions/autosavetime/main.js'
+RUN sed -i 's|2 (\(default\))|2|' '/opt/conda/lib/python3.8/site-packages/jupyter_contrib_nbextensions/nbextensions/autosavetime/main.js'
+
+RUN sed -i 's|default: 2|default: 0|' '/opt/conda/pkgs/jupyter_contrib_nbextensions-0.5.1-pyhd8ed1ab_2/site-packages/jupyter_contrib_nbextensions/nbextensions/autosavetime/autosavetime.yaml'
+RUN sed -i 's|autosavetime_starting_interval : 2,|autosavetime_starting_interval : 0,|' '/opt/conda/pkgs/jupyter_contrib_nbextensions-0.5.1-pyhd8ed1ab_2/site-packages/jupyter_contrib_nbextensions/nbextensions/autosavetime/main.js'
+RUN sed -i 's|2 (\(default\))|2|' '/opt/conda/pkgs/jupyter_contrib_nbextensions-0.5.1-pyhd8ed1ab_2/site-packages/jupyter_contrib_nbextensions/nbextensions/autosavetime/main.js'
+
+RUN sed -i 's|default: 2|default: 0|' '/home/sciencedata/.local/share/jupyter/nbextensions/autosavetime/autosavetime.yaml'
+RUN sed -i 's|autosavetime_starting_interval : 2,|autosavetime_starting_interval : 0,|' '/home/sciencedata/.local/share/jupyter/nbextensions/autosavetime/main.js'
+RUN sed -i 's|2 (\(default\))|2|' '/home/sciencedata/.local/share/jupyter/nbextensions/autosavetime/main.js'
+
+
+# Bash kernel
+RUN conda install --quiet --yes bash_kernel
+RUN python -m bash_kernel.install
+
+# For the ensteinpy examples
+RUN pip install einsteinpy
+
+# For the astropy examples
+RUN pip install astropy astroquery notebook git+https://github.com/radio-astro-tools/spectral-cube radio-beam reproject dust_extinction gala dust_extinction synphot
+
+# For riemann_book
+RUN pip install clawpack
+
+# Spinning wheel on ajax calls
+RUN cp jupyter_sciencedata/custom/* /opt/conda/lib/python3.8/site-packages/notebook/static/custom/
+
+RUN pip install sddk
+# For now, manually override with updated version
+RUN curl -L -o /opt/conda/lib/python3.8/site-packages/sddk/__init__.py https://raw.githubusercontent.com/deic-dk/sddk_py/master/sddk/__init__.py
+
+# Patch python's urllib to not match hostname with certificate
+RUN sed -i 's|and self.assert_hostname is not False|and self.assert_hostname is not False and False|' /opt/conda/lib/python3.8/site-packages/urllib3/connection.py
 
