@@ -409,11 +409,6 @@ RUN pip install sddk
 # For now, manually override with updated version
 RUN curl -L -o /opt/conda/lib/python3.8/site-packages/sddk/__init__.py https://raw.githubusercontent.com/deic-dk/sddk_py/master/sddk/__init__.py
 
-# Patch Jupyter to accept not checkpointing
-# UPDATE: gave up on this - we'll live with checkpoints for now...
-#COPY no_checkpoints.sh no_checkpoints.sh
-#RUN bash ./no_checkpoints.sh
-
 # Patch python's urllib to not match hostname with certificate
 RUN sed -i 's|and self.assert_hostname is not False|and self.assert_hostname is not False and False|' /opt/conda/lib/python3.8/site-packages/urllib3/connection.py
 
