@@ -214,6 +214,7 @@ USER $NB_UID
 RUN pip install webdavclient3
 #RUN git clone https://github.com/deic-dk/jupyter_sciencedata.git
 ADD https://api.github.com/repos/deic-dk/jupyter_sciencedata/git/refs/heads/main version.json
+RUN sudo chown "${NB_USER}":users version.json
 RUN git clone -b main https://github.com/deic-dk/jupyter_sciencedata.git
 RUN pip install jupyter_sciencedata/
 
@@ -411,4 +412,8 @@ RUN curl -L -o /opt/conda/lib/python3.8/site-packages/sddk/__init__.py https://r
 
 # Patch python's urllib to not match hostname with certificate
 RUN sed -i 's|and self.assert_hostname is not False|and self.assert_hostname is not False and False|' /opt/conda/lib/python3.8/site-packages/urllib3/connection.py
+
+# Fix https://github.com/ipython-contrib/jupyter_contrib_nbextensions/issues/1529
+RUN grep -r template_path /opt/conda/lib/python3.8/site-packages/jupyter_contrib_nbextensions | grep '.py:' | while read line; do name=`echo $line | awk -F: '{print $1}'`; grep template_paths "$name" || sed -i 's|template_path|template_paths|g' "$name"; done
+RUN grep -r template_path /opt/conda/lib/python3.8/site-packages/latex_envs | grep '.py:' | while read line; do name=`echo $line | awk -F: '{print $1}'`; grep template_paths "$name" || sed -i 's|template_path|template_paths|g' "$name"; done
 
