@@ -21,13 +21,21 @@ RUN apt update
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang duck cron \
-apt-transport-https wget jq dropbear iputils-ping traceroute php-yaml
+apt-transport-https wget jq iputils-ping traceroute openssh-server syslog-ng man-db
 
 RUN DEBIAN_FRONTEND=noninteractive apt-key adv --keyserver keyserver.ubuntu.com --recv-keys FE7097963FEFBE72
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y duck
 
 ADD start.sh /root/start.sh
 RUN chmod +x /root/start.sh
+
+ADD sshd_config /etc/ssh/sshd_config
+
+# "unminimize" script provided by ubuntu:20.04 container restores expected shell features like installing
+# man pages. The script itself is interactive, so this a modified version that runs without interaction
+ADD unminimize-yes /usr/local/sbin/unminimize-yes
+RUN chmod +x /usr/local/sbin/unminimize-yes
+RUN /usr/local/sbin/unminimize-yes
 
 # Configure locale
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales
@@ -39,7 +47,7 @@ RUN locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
 # Configure keyboard - not necessary
 #RUN DEBIAN_FRONTEND=noninteractive apt-get -y install console-data
 
-RUN mkdir /var/run/sshd
+RUN mkdir /run/sshd
 
 # Configure ssh access
 RUN echo "alias ls='ls --color=auto'" >> .bashrc
