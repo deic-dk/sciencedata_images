@@ -23,15 +23,11 @@ rm /etc/ssh/ssh_host*
 ssh-keygen -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key
 ssh-keygen -t rsa -N '' -f /etc/ssh/ssh_host_rsa_key
 #get fingerprints
-ed_fprint=$(ssh-keygen -l -f /etc/ssh/ssh_host_ed25519_key.pub | sed -E 's|.*SHA256:(.*) root.*|\1|')
-rsa_fprint=$(ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key.pub | sed -E 's|.*SHA256:(.*) root.*|\1|')
 echo \
-'{
-  "ed25519": "EDFINGERPRINT",
-  "rsa": "RSAFINGERPRINT"
-}' > /tmp/hostkeys
-sed -i "s|EDFINGERPRINT|$ed_fprint|" /tmp/hostkeys
-sed -i "s|RSAFINGERPRINT|$rsa_fprint|" /tmp/hostkeys
+"{
+  \"ed25519\": \"$(ssh-keygen -l -f /etc/ssh/ssh_host_ed25519_key.pub | sed -E 's|.*SHA256:(.*) root.*|\1|')\",
+  \"rsa\": \"$(ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key.pub | sed -E 's|.*SHA256:(.*) root.*|\1|')\"
+}" > /tmp/hostkeys
 ###### End generate new ssh_host keys
 
 service cron start
