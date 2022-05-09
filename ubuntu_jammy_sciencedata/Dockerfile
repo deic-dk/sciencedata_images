@@ -54,9 +54,9 @@ RUN sed -ri 's/UsePAM yes/UsePAM no/g' /etc/ssh/sshd_config
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-ADD start.sh /root/start.sh
-RUN chmod +x /root/start.sh
+ADD start.sh /usr/local/sbin/start.sh
+RUN chmod +x /usr/local/sbin/start.sh
 
 EXPOSE 22
 
-CMD ["/root/start.sh"]
+CMD ["/usr/local/sbin/start.sh"]
