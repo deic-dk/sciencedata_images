@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # SSH access to root
-if [ -n "$SSH_PUBLIC_KEY" ]; then
+if [[ -n "$SSH_PUBLIC_KEY" ]]; then
 	echo "$SSH_PUBLIC_KEY" >> /root/.ssh/authorized_keys
-#else
-#	echo "root:$ROOT_PASSWORD" | chpasswd;
+fi
+if [[ -n "$ROOT_PASSWORD" ]]; then
+	echo "root:$ROOT_PASSWORD" | chpasswd;
 fi
 
 # Resolve sciencedata to the 10.2.0.0/24 address of the silo of the user
@@ -24,7 +25,7 @@ ssh-keygen -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key
 ssh-keygen -t rsa -N '' -f /etc/ssh/ssh_host_rsa_key
 #get fingerprints
 printf "ed25519\t%s\nrsa\t%s" $(ssh-keygen -l -f /etc/ssh/ssh_host_ed25519_key.pub | sed -E 's|.*SHA256:(.*) root.*|\1|') \
-       $(ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key.pub | sed -E 's|.*SHA256:(.*) root.*|\1|') >/tmp/hostkeys
+$(ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key.pub | sed -E 's|.*SHA256:(.*) root.*|\1|') >/tmp/hostkeys
 ###### End generate new ssh_host keys
 
 service cron start

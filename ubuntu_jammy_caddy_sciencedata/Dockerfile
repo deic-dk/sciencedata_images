@@ -1,5 +1,5 @@
-# Build command: docker build -t kube.sciencedata.dk:5000/ubuntu_jammy_sciencedata .
-# Run command: docker run -p 8080:80 -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key kube.sciencedata.dk:5000/ubuntu_jammy_sciencedata
+# Build command: docker build -t kube.sciencedata.dk:5000/ubuntu_jammy_caddy_sciencedata .
+# Run command: docker run -p 8080:80 -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key sciencedata/ubuntu_focal_caddy_sciencedata
 
 FROM ubuntu:22.04
 MAINTAINER Frederik Orellana "https://github.com/deltafunction"
@@ -8,24 +8,24 @@ LABEL vendor="sciencedata.dk"
 LABEL version="1.0"
 LABEL description="Ubuntu Jammy for deployment on sciencedata.dk"
 
-# temporary fix for 22.04 container, should be able to safely remove when newer docker version is available
-#RUN sed -i -e 's/^DPkg/# DPkg/' -e 's/^APT/# APT/' /etc/apt/apt.conf.d/docker-clean
-
 RUN DEBIAN_FRONTEND=noninteractive apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install ca-certificates
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
-bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang duck cron \
-apt-transport-https wget jq iputils-ping traceroute openssh-server man-db
+bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang cron man-db \
+apt-transport-https wget jq nfs-common php-cli php-fpm openssh-server iputils-ping traceroute php-yaml
 
 # Add cyberduck, get key manually due to apt-key deprecation
 RUN echo "deb [signed-by=/usr/local/share/keyrings/cyberduck.gpg] https://s3.amazonaws.com/repo.deb.cyberduck.io stable main" | tee -a /etc/apt/sources.list.d/cyberduck.list
 RUN mkdir -p /usr/local/share/keyrings
 RUN gpg --keyserver keyserver.ubuntu.com --recv-keys FE7097963FEFBE72
 RUN gpg --export FE7097963FEFBE72 > /usr/local/share/keyrings/cyberduck.gpg
-RUN rm -rf /root/.temp-keyring.gpg* /root/.gnupg
+RUN rm -rf /root/.gnupg
+# Add caddy
+RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo tee /etc/apt/trusted.gpg.d/caddy-stable.asc
+RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
 RUN apt update
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y duck
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y duck caddy
 
 # "unminimize" script provided by ubuntu:22.04 container restores expected shell features like installing
 # man pages. The script itself is interactive, so this a modified version that runs without interaction
@@ -53,9 +53,16 @@ RUN sed -ri 's/UsePAM yes/UsePAM no/g' /etc/ssh/sshd_config
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Configure caddy
+ADD Caddyfile /root/Caddyfile
+ADD index.php /root/index.php
 ADD start.sh /usr/local/sbin/start.sh
 RUN chmod +x /usr/local/sbin/start.sh
+RUN chmod go+rx /root/
 
 EXPOSE 22
+EXPOSE 80
+# Caddy runs admin endpoint on port 2019
+#EXPOSE 2019
 
 CMD ["/usr/local/sbin/start.sh"]
