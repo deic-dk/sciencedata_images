@@ -239,7 +239,7 @@
 				</p>
 				<ul>
 					<li>Check if <code>/root/www</code> is nfs-mounted inside your container: Execute <code>df -h</code>.</li>
-					<li>Check your Caddy and PHP logs, <code>/var/log/caddy.log</code> and <code>/var/log/php7.4-fpm.log</code>, for errors.</li>
+					<li>Check your Caddy and PHP logs, <code>/var/log/caddy.log</code> and <code>/var/log/INSTALLED_PHP_FPM.log</code>, for errors.</li>
 					<li>Are your site's files readable by the caddy user and the www-data user? <code>ls -la /root/www/</code>.</li>
 				</ul>
 				<p>

@@ -28,8 +28,18 @@ printf "ed25519\t%s\nrsa\t%s" $(ssh-keygen -l -f /etc/ssh/ssh_host_ed25519_key.p
 $(ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key.pub | sed -E 's|.*SHA256:(.*) root.*|\1|') >/tmp/hostkeys
 ###### End generate new ssh_host keys
 
-test -e /root/www/index.* || chmod go+rw "/root/index.php" &&  mv "/root/index.php" "/root/www/"
-service php7.4-fpm start
+# Try to get service name installed by `apt-get install php-fpm`, and default to "php8.1-fpm"
+installed_php_fpm=$(service --status-all 2> /dev/null | grep "php[0-9][.][0-9]-fpm" | sed -E 's/.*(php[0-9][.][0-9]-fpm).*/\1/')
+if [[ -z $installed_php_fpm ]]; then
+    installed_php_fpm="php8.1-fpm"
+fi
+service "$installed_php_fpm" start
+sed -i "s/INSTALLED_PHP_FPM/$installed_php_fpm/" /root/Caddyfile
+sed -i "s/INSTALLED_PHP_FPM/$installed_php_fpm/" /root/index.php
+
+# if an index file isn't present in the presistent storage, then use the default index.php
+[[ -e /root/www/index.* ]] || chmod go+rw "/root/index.php" &&  mv "/root/index.php" "/root/www/"
+
 service cron start
 cd /root
 export HOSTNAME
