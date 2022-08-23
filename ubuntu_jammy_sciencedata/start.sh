@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # SSH access to root
-if [ -n "$SSH_PUBLIC_KEY" ]; then
+if [[ -n "$SSH_PUBLIC_KEY" ]]; then
 	echo "$SSH_PUBLIC_KEY" >> /root/.ssh/authorized_keys
-else
+fi
+if [[ -n "$ROOT_PASSWORD" ]]; then
 	echo "root:$ROOT_PASSWORD" | chpasswd;
 fi
 
@@ -18,10 +19,16 @@ fi
 umask 000
 echo "umask 000" >> ~/.bashrc
 
-test -e /root/www/index.* || chmod go+rw "/root/index.php" &&  mv "/root/index.php" "/root/www/"
-service php7.4-fpm start
+###### Begin generate new ssh_host keys
+rm /etc/ssh/ssh_host*
+ssh-keygen -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key
+ssh-keygen -t rsa -N '' -f /etc/ssh/ssh_host_rsa_key
+#get fingerprints
+printf "ed25519\t%s\nrsa\t%s" $(ssh-keygen -l -f /etc/ssh/ssh_host_ed25519_key.pub | sed -E 's|.*SHA256:(.*) root.*|\1|') \
+$(ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key.pub | sed -E 's|.*SHA256:(.*) root.*|\1|') >/tmp/hostkeys
+###### End generate new ssh_host keys
+
 service cron start
 cd /root
 export HOSTNAME
-/usr/bin/caddy start
-/usr/sbin/dropbear -p 22 -W 65536 -F -E
+/usr/sbin/sshd -D
