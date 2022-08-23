@@ -243,7 +243,7 @@
 					<li>Are your site's files readable by the caddy user and the www-data user? <code>ls -la /root/www/</code>.</li>
 				</ul>
 				<p>
-					If you're still stuck, send us an <a href="mailto:cloud@deic.dk">email</a> with the above information and we'll help you out.
+					If you're still stuck, send us an <a href="mailto:support@sciencedata.dk">email</a> with the above information and we'll help you out.
 				</p>
 			</div>
 		</div>
