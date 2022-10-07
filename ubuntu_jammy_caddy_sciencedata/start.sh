@@ -37,7 +37,10 @@ service "$installed_php_fpm" start
 sed -i "s/INSTALLED_PHP_FPM/$installed_php_fpm/" /root/Caddyfile
 sed -i "s/INSTALLED_PHP_FPM/$installed_php_fpm/" /root/index.php
 
-# if an index file isn't present in the presistent storage, then use the default index.php
+# Make the mounted directory (/root/www) world read/writeable - to allow writing to it via webdav
+chmod go+rwx `df | grep -E '^10.0' | awk '{print $NF}'`
+
+# If an index file isn't present in the presistent storage, then use the default index.php
 [[ -e /root/www/index.* ]] || chmod go+rw "/root/index.php" &&  mv "/root/index.php" "/root/www/"
 
 service cron start
