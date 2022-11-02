@@ -11,7 +11,7 @@ for i in {1..60}; do
       uri=`echo $uri | sed "s|?token=|notebooks/$FILE?token=|"`
     fi
     echo "URI: $uri"
-    echo "$uri" > /tmp/URI
+    echo "$uri" > /tmp/appendURL
     break
   fi;
 done &

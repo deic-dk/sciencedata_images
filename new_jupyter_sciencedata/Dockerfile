@@ -15,7 +15,7 @@ RUN apt-get install -y \
 ADD --chown=root:root ["before-notebook.d", "/usr/local/bin/before-notebook.d"]
 
 RUN rm -rf /home/jovyan/work && \
-    COPYLINE='[[ -n "${STORAGE_PATH}" ]] && ln -s /mnt/sciencedata/${STORAGE_PATH} /home/jovyan/sciencedata || ln -s /mnt/sciencedata /home/jovyan/sciencedata' && \
+    COPYLINE='[[ -n "${WORKING_DIRECTORY}" ]] && ln -s /mnt/sciencedata/${WORKING_DIRECTORY} /home/jovyan/sciencedata || ln -s /mnt/sciencedata /home/jovyan/sciencedata' && \
     echo -e "$(head /usr/local/bin/start-notebook.sh -n 3)\n${COPYLINE}\n$(tail /usr/local/bin/start-notebook.sh -n +3)" > /usr/local/bin/start-notebook.sh
 
 USER ${NB_UID}
