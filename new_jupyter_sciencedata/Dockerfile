@@ -18,7 +18,9 @@ RUN sed -i 's/^read.*//g' /usr/local/sbin/unminimize && \
 
 
 RUN apt-get install -y \
-    curl
+    curl \
+    vim \
+    man
 
 ADD --chown=root:root ["before-notebook.d", "/usr/local/bin/before-notebook.d"]
 
@@ -35,7 +37,11 @@ SHELL ["/bin/bash", "-c"]
 RUN echo $'\n\
 from jupyter_sciencedata import JupyterScienceData\n\
 c.NotebookApp.contents_manager_class = \'jupyter_sciencedata.JupyterScienceData\'\n\
+c.NotebookApp.notebook_dir = ""\n\
 ' >> /etc/jupyter/jupyter_notebook_config.py
+RUN echo $'\n\
+c.ServerApp.root_dir = ""\n\
+' >> /etc/jupyter/jupyter_server_config.py
 
 
 USER root
