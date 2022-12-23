@@ -37,10 +37,10 @@ SHELL ["/bin/bash", "-c"]
 RUN echo $'\n\
 from jupyter_sciencedata import JupyterScienceData\n\
 c.NotebookApp.contents_manager_class = \'jupyter_sciencedata.JupyterScienceData\'\n\
-c.NotebookApp.notebook_dir = ""\n\
+c.NotebookApp.notebook_dir = "/"\n\
 ' >> /etc/jupyter/jupyter_notebook_config.py
 RUN echo $'\n\
-c.ServerApp.root_dir = ""\n\
+c.ServerApp.root_dir = "/"\n\
 ' >> /etc/jupyter/jupyter_server_config.py
 
 
