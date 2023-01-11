@@ -5,7 +5,7 @@
 # Build command: docker build -t sciencedata/jupyter_sciencedata .
 # Run command: docker run -p 8080:80 -p 4022:22 sciencedata/jupyter_sciencedata
 
-FROM jupyter/scipy-notebook:3d10155c955f@sha256:5bce431c1b63525dc8749747b09133b2a66a01df10b533ad70a106add7a65bb5
+FROM jupyter/datascience-notebook:a0dc204c0106@sha256:ecadc68b3e42658a4006019537c3d32d8071654c91465f144ee0ac7bed211466
 
 USER root
 RUN apt-get update
