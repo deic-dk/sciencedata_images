@@ -35,19 +35,26 @@ ADD --chown=root:root ["before-notebook.d", "/usr/local/bin/before-notebook.d"]
 
 # Use bash shell in order for ANSI-C quoting in following RUN statement to work
 SHELL ["/bin/bash", "-c"]
-# Configure the jupyter notebook to use the custom content API
+# Configure the jupyter notebook to use the custom content API,
+# and to ignore conda envs in /opt/conda when automatically adding conda envs to the kernel (necessary to avoid duplicate entries)
 RUN echo $'\n\
 from jupyter_sciencedata import JupyterScienceData\n\
 c.NotebookApp.contents_manager_class = \'jupyter_sciencedata.JupyterScienceData\'\n\
-c.CondaKernelSpecManager.env_filter = ".*root.*"\n\
 c.NotebookApp.notebook_dir = "/"\n\
+c.CondaKernelSpecManager.env_filter = "/opt/conda.*"\n\
 ' >> /etc/jupyter/jupyter_notebook_config.py
 RUN echo $'\n\
 c.ServerApp.root_dir = "/"\n\
-c.CondaKernelSpecManager.env_filter = ".*root.*"\n\
 ' >> /etc/jupyter/jupyter_server_config.py
 
 USER root
+
+# Configure conda to install new envs to the user directory first. This way they won't be put in /opt/conda and be ignored
+RUN echo $'\n\
+envs_dirs:\n\
+  - /home/sciencedata/.conda/envs\n\
+  - /opt/conda/envs\n\
+' >> /opt/conda/.condarc
 
 ENV NB_USER="sciencedata" \
     GRANT_SUDO="yes"
