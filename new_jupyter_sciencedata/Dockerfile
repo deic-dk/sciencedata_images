@@ -42,6 +42,7 @@ from jupyter_sciencedata import JupyterScienceData\n\
 c.NotebookApp.contents_manager_class = \'jupyter_sciencedata.JupyterScienceData\'\n\
 c.NotebookApp.notebook_dir = "/"\n\
 c.CondaKernelSpecManager.env_filter = "/opt/conda.*"\n\
+c.CondaKernelSpecManager.name_format = "{language} [{environment}]"\n\
 ' >> /etc/jupyter/jupyter_notebook_config.py
 RUN echo $'\n\
 c.ServerApp.root_dir = "/"\n\
