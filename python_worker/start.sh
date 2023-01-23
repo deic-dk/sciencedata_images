@@ -19,12 +19,12 @@ fi
 
 # Before running the main script, run all the start-scripts that may be present in docker images based on this one.
 for f in /usr/local/sbin/start-scripts/*; do
-	source "${f}"
+	bash "${f}"
 done
 
 # If there is a main script, run that
 if [[ -f /usr/local/sbin/main-script.sh ]]; then
-	source /usr/local/sbin/main-script.sh
+	bash /usr/local/sbin/main-script.sh
 # Otherwise, start the sshd server and let it run indefinitely
 else
   cd /root

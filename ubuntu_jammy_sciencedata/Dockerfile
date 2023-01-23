@@ -26,31 +26,31 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
 
 # "unminimize" script provided by ubuntu:22.04 container restores expected shell features like installing
 # man pages. The script itself is interactive, so this a modified version that runs without interaction
-RUN sed -i 's/^read.*//g' /usr/local/sbin/unminimize
-RUN sed -i 's/exit 1/echo "skip"/g' /usr/local/sbin/unminimize
-RUN sed -i 's/apt-get upgrade/apt-get upgrade -y/g' /usr/local/sbin/unminimize
-RUN /usr/local/sbin/unminimize
+RUN sed -i 's/^read.*//g' /usr/local/sbin/unminimize && \
+    sed -i 's/exit 1/echo "skip"/g' /usr/local/sbin/unminimize && \
+    sed -i 's/apt-get upgrade/apt-get upgrade -y/g' /usr/local/sbin/unminimize && \
+    /usr/local/sbin/unminimize
 
 # Configure locale
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales
-RUN locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
-
-RUN mkdir /run/sshd
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales && \
+    locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
 
 # Configure ssh access
-RUN echo "PATH=${PATH}:/sbin/:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin" >> ~/.bashrc
-RUN mkdir /root/.ssh
-RUN touch /root/.ssh/authorized_keys
-RUN chmod -R go-rw /root/.ssh
-
-RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+RUN mkdir /run/sshd && \
+    echo "PATH=${PATH}:/sbin/:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin" >> ~/.bashrc && \
+    mkdir /root/.ssh && \
+    touch /root/.ssh/authorized_keys && \
+    chmod -R go-rw /root/.ssh && \
+    sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
     sed -ri 's/UsePAM yes/UsePAM no/g' /etc/ssh/sshd_config && \
     sed -ri 's/^#?PasswordAuthentication\s.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
 
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Prepare start stripts
 ADD start.sh /usr/local/sbin/start.sh
+ADD start-scripts /usr/local/sbin/start-scripts
 RUN chmod +x /usr/local/sbin/start.sh
 
 EXPOSE 22
