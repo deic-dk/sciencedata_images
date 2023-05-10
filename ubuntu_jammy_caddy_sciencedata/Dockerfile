@@ -8,7 +8,7 @@ LABEL vendor="sciencedata.dk"
 LABEL version="1.0"
 LABEL description="Ubuntu Jammy for deployment on sciencedata.dk"
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install ca-certificates
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y ca-certificates
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
     apt-transport-https \
@@ -17,6 +17,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
     dkms \
     cron \
     curl \
+    debian-keyring \
+    debian-archive-keyring \
     git \
     gpg \
     golang \
@@ -46,11 +48,12 @@ RUN echo "deb [signed-by=/usr/local/share/keyrings/cyberduck.gpg] https://s3.ama
     && gpg --export FE7097963FEFBE72 > /usr/local/share/keyrings/cyberduck.gpg \
     && rm -rf /root/.gnupg \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y duck
+
 # Add caddy
-RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | tee /etc/apt/trusted.gpg.d/caddy-stable.asc \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
-    && apt update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y caddy
+RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg && \
+    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list && \
+    DEBIAN_FRONTEND=noninteractive apt update && \
+    DEBIAN_FRONTEND=noninteractive apt install -y caddy
 
 # "unminimize" script provided by ubuntu:22.04 container restores expected shell features like installing
 # man pages. The script itself is interactive, so this a modified version that runs without interaction

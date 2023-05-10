@@ -5,7 +5,7 @@
 # Build command: docker build -t sciencedata/jupyter_sciencedata .
 # Run command: docker run -p 8080:80 -p 4022:22 sciencedata/jupyter_sciencedata
 
-FROM jupyter/datascience-notebook:a0dc204c0106@sha256:ecadc68b3e42658a4006019537c3d32d8071654c91465f144ee0ac7bed211466
+FROM jupyter/datascience-notebook@sha256:48bd19591972e68bbc8a08149d8f5222b5830d7d3818a2169880aeb0bea52660
 
 USER root
 RUN apt-get update
@@ -25,9 +25,9 @@ RUN apt-get install -y \
 # Install the custom content API to access the virtual filesystem via webdav on the data vlan
 USER ${NB_UID}
 RUN pip install webdavclient3 && \
-    wget https://api.github.com/repos/joshuadclement/jupyter_sciencedata/git/refs/heads/main -o version.json && \
     git clone https://github.com/joshuadclement/jupyter_sciencedata.git && \
-    pip install jupyter_sciencedata/
+    pip install jupyter_sciencedata/ && \
+    rm -rf jupyter_sciencedata work
 
 RUN conda install -y nb_conda_kernels
 

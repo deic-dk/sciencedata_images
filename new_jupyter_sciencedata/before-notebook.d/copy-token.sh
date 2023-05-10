@@ -3,8 +3,8 @@
 for i in {1..60}; do
   sleep 1
   echo "Waiting for server to be running to copy token $i"
-  uri=$(sudo -u sciencedata jupyter server list | grep -E ' *http://[^/]*/(.*token=.*) *' | \
-    sed -E 's| *http://[^/]*/(.*token=[^ ]*).*|\1|' | tail -1 | awk '{print $1}')
+  uri=$(sudo -u sciencedata jupyter server list 2>&1 | grep -E ' *http://[^/]*/(.*token=.*) *' | \
+    sed -E 's|.*http://[^/]*/(.*token=[^ ]*).*|\1|' | tail -1 | awk '{print $1}')
   if [[ -n "$uri" ]]; then
     echo "URI: $uri"
     echo "$uri" > /tmp/appendURL
