@@ -37,8 +37,11 @@ service "$installed_php_fpm" start
 sed -i "s/INSTALLED_PHP_FPM/$installed_php_fpm/" /root/Caddyfile
 sed -i "s/INSTALLED_PHP_FPM/$installed_php_fpm/" /root/index.php
 
+# Make a symlink from user storage to /root/www
+ln -s /mnt/sciencedata/"${WORKING_DIRECTORY}" /root/www
+
 # if an index file isn't present in the presistent storage, then use the default index.php
-[[ -e /root/www/index.* ]] || chmod go+rw "/root/index.php" &&  mv "/root/index.php" "/root/www/"
+[[ -e /root/www/index.html || -e /root/www/index.php ]] || chmod go+rw "/root/index.php" &&  mv "/root/index.php" "/root/www/"
 
 service cron start
 cd /root
