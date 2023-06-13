@@ -3,6 +3,7 @@
 # Distributed under the terms of the Modified BSD License.
 
 # Build command: docker build -t sciencedata/jupyter_sciencedata .
+# Push command: docker push sciencedata/jupyter_sciencedata
 # Run command: docker run -p 8080:80 -p 4022:22 sciencedata/jupyter_sciencedata
 
 # Ubuntu 20.04 (focal)
