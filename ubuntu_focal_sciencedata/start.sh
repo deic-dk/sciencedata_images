@@ -1,10 +1,9 @@
 #!/bin/bash
 
 # SSH access to root
-if [[ -n "$SSH_PUBLIC_KEY" ]]; then
+if [ -n "$SSH_PUBLIC_KEY" ]; then
 	echo "$SSH_PUBLIC_KEY" >> /root/.ssh/authorized_keys
-fi
-if [[ -n "$ROOT_PASSWORD" ]]; then
+else
 	echo "root:$ROOT_PASSWORD" | chpasswd;
 fi
 

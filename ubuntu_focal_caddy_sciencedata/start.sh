@@ -1,10 +1,9 @@
 #!/bin/bash
 
 # SSH access to root
-if [[ -n "$SSH_PUBLIC_KEY" ]]; then
+if [ -n "$SSH_PUBLIC_KEY" ]; then
 	echo "$SSH_PUBLIC_KEY" >> /root/.ssh/authorized_keys
-fi
-if [[ -n "$ROOT_PASSWORD" ]]; then
+else
 	echo "root:$ROOT_PASSWORD" | chpasswd;
 fi
 
@@ -19,8 +18,10 @@ fi
 umask 000
 echo "umask 000" >> ~/.bashrc
 
+test -e /root/www/index.* || chmod go+rw "/root/index.php" &&  mv "/root/index.php" "/root/www/"
 service php7.4-fpm start
 service cron start
 cd /root
 export HOSTNAME
+/usr/bin/caddy start
 /usr/sbin/dropbear -p 22 -W 65536 -F -E

@@ -19,32 +19,15 @@ fi
 umask 000
 echo "umask 000" >> ~/.bashrc
 
-###### Begin generate new ssh_host keys
-rm /etc/ssh/ssh_host*
-ssh-keygen -t ed25519 -N '' -f /etc/ssh/ssh_host_ed25519_key
-ssh-keygen -t rsa -N '' -f /etc/ssh/ssh_host_rsa_key
-#get fingerprints
-printf "ed25519\t%s\nrsa\t%s" $(ssh-keygen -l -f /etc/ssh/ssh_host_ed25519_key.pub | sed -E 's|.*SHA256:(.*) root.*|\1|') \
-$(ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key.pub | sed -E 's|.*SHA256:(.*) root.*|\1|') >/tmp/hostkeys
-###### End generate new ssh_host keys
-
-# Try to get service name installed by `apt-get install php-fpm`, and default to "php8.1-fpm"
-installed_php_fpm=$(service --status-all 2> /dev/null | grep "php[0-9][.][0-9]-fpm" | sed -E 's/.*(php[0-9][.][0-9]-fpm).*/\1/')
-if [[ -z $installed_php_fpm ]]; then
-    installed_php_fpm="php8.1-fpm"
-fi
-service "$installed_php_fpm" start
-sed -i "s/INSTALLED_PHP_FPM/$installed_php_fpm/" /root/Caddyfile
-sed -i "s/INSTALLED_PHP_FPM/$installed_php_fpm/" /root/index.php
-
 # Make the mounted directory (/root/www) world read/writeable - to allow writing to it via webdav
 chmod go+rwx `df | grep -E '^10.0' | awk '{print $NF}'`
 
-# If an index file isn't present in the presistent storage, then use the default index.php
+# If an index file isn't present in NFS storage, use the default index.php
 [[ -e /root/www/index.* ]] || chmod go+rw "/root/index.php" &&  mv "/root/index.php" "/root/www/"
 
 service cron start
+service php-fpm start
 cd /root
 export HOSTNAME
 /usr/bin/caddy start
-/usr/sbin/sshd -D
+/usr/sbin/dropbear -p 22 -W 65536 -F -E
