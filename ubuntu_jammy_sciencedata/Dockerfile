@@ -1,5 +1,5 @@
-# Build command: docker build -t sciencedata/ubuntu_focal_sciencedata .
-# Push command: docker push sciencedata/ubuntu_focal_sciencedata
+# Build command: docker build -t sciencedata/ubuntu_jammy_sciencedata .
+# Push command: docker push sciencedata/ubuntu_jammy_sciencedata
 # Run command: docker run -p 8080:80 -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key sciencedata/ubuntu_jammy_sciencedata
 # Run command: docker run -p 8080:80 -p 4022:22 -e SSH_PUBLIC_KEY="`cat ~/.ssh/id_rsa.pub`" sciencedata/ubuntu_jammy_sciencedata
 
@@ -31,10 +31,10 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y duck
 
 # "unminimize" script provided by ubuntu:22.04 container restores expected shell features like installing
 # man pages. The script itself is interactive, so this a modified version that runs without interaction
-RUN sed -i 's/^read.*//g' /usr/local/sbin/unminimize
-RUN sed -i 's/exit 1/echo "skip"/g' /usr/local/sbin/unminimize
-RUN sed -i 's/apt-get upgrade/apt-get upgrade -y/g' /usr/local/sbin/unminimize
-RUN /usr/local/sbin/unminimize
+#RUN sed -i 's/^read.*//g' /usr/local/sbin/unminimize
+#RUN sed -i 's/exit 1/echo "skip"/g' /usr/local/sbin/unminimize
+#RUN sed -i 's/apt-get upgrade/apt-get upgrade -y/g' /usr/local/sbin/unminimize
+#RUN /usr/local/sbin/unminimize
 
 # Configure locale
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales
@@ -46,6 +46,8 @@ RUN locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
 # Configure keyboard - not necessary
 #RUN DEBIAN_FRONTEND=noninteractive apt-get -y install console-data
 
+RUN apt -y autoremove
+
 RUN mkdir /run/sshd
 
 # Configure ssh access
@@ -55,8 +57,8 @@ RUN mkdir /root/.ssh
 RUN touch /root/.ssh/authorized_keys
 RUN chmod -R go-rw /root/.ssh
 
-RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
+#RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+#RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
 
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

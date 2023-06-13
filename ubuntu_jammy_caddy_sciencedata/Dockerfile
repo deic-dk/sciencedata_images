@@ -12,6 +12,8 @@ LABEL description="Ubuntu Jammy for deployment on sciencedata.dk"
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install ca-certificates
 
+RUN apt update && apt install -y gpg gpgv1 curl apt-transport-https
+
 # Add cyberduck, get key manually due to apt-key deprecation
 RUN echo "deb [signed-by=/usr/local/share/keyrings/cyberduck.gpg] https://s3.amazonaws.com/repo.deb.cyberduck.io stable main" | tee -a /etc/apt/sources.list.d/cyberduck.list \
     && mkdir -p /usr/local/share/keyrings \
@@ -20,10 +22,10 @@ RUN echo "deb [signed-by=/usr/local/share/keyrings/cyberduck.gpg] https://s3.ama
     && rm -rf /root/.gnupg
 
 # Add caddy
-RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | tee /etc/apt/trusted.gpg.d/caddy-stable.asc \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
+RUN echo 'deb [signed-by=/usr/share/keyrings/caddy.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main' >  /etc/apt/sources.list.d/caddy-stable.list
+RUN curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' |  gpg --dearmor > /usr/share/keyrings/caddy.gpg
 
-RUN apt update
+RUN apt update --fix-missing
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang duck cron \
@@ -31,10 +33,10 @@ apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear iputils-pi
 
 # "unminimize" script provided by ubuntu:22.04 container restores expected shell features like installing
 # man pages. The script itself is interactive, so this a modified version that runs without interaction
-RUN sed -i 's/^read.*//g' /usr/local/sbin/unminimize \
-    && sed -i 's/exit 1/echo "skip"/g' /usr/local/sbin/unminimize \
-    && sed -i 's/apt-get upgrade/apt-get upgrade -y/g' /usr/local/sbin/unminimize \
-    && /usr/local/sbin/unminimize
+#RUN sed -i 's/^read.*//g' /usr/local/sbin/unminimize \
+#    && sed -i 's/exit 1/echo "skip"/g' /usr/local/sbin/unminimize \
+#    && sed -i 's/apt-get upgrade/apt-get upgrade -y/g' /usr/local/sbin/unminimize \
+#    && /usr/local/sbin/unminimize
 
 # Configure locale
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
@@ -43,7 +45,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
 # Configure keyboard - not necessary
 #RUN DEBIAN_FRONTEND=noninteractive apt-get -y install console-data
 
-RUN mkdir /var/run/sshd
+RUN mkdir /run/sshd
 
 # Configure ssh access
 RUN echo "alias ls='ls --color=auto'" >> .bashrc
@@ -52,8 +54,8 @@ RUN mkdir /root/.ssh
 RUN touch /root/.ssh/authorized_keys
 RUN chmod -R go-rw /root/.ssh
 
-RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
+#RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+#RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
 
 # Configure caddy
 ADD Caddyfile /root/Caddyfile

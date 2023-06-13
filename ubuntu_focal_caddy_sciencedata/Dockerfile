@@ -20,14 +20,17 @@ RUN echo "deb [trusted=yes] https://apt.fury.io/caddy/ /" | tee -a /etc/apt/sour
 # Add duck
 RUN echo  "deb [trusted=yes] https://s3.amazonaws.com/repo.deb.cyberduck.io stable main" | tee -a /etc/apt/sources.list.d/cyberduck.list
 
-RUN apt update
+RUN apt update --fix-missing
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
-bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang duck cron \
-apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear iputils-ping traceroute php-yaml
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y gpg gpgv1
 
 RUN DEBIAN_FRONTEND=noninteractive apt-key adv --keyserver keyserver.ubuntu.com --recv-keys FE7097963FEFBE72
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y duck
+
+RUN apt update --fix-missing
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
+bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang cron \
+apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear iputils-ping traceroute php-yaml duck
 
 # Configure caddy
 ADD Caddyfile /root/Caddyfile
@@ -37,8 +40,8 @@ RUN chmod +x /root/start.sh
 RUN chmod go+rx /root/
 
 # Configure locale
-#RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales
-#RUN locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales
+RUN locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
 # systemd stuff - not working under docker
 #RUN localectl set-locale LANGUAGE="en_US:en"
 #RUN localectl set-locale LANG="en_US.utf8"

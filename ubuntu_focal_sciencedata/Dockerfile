@@ -13,19 +13,20 @@ LABEL description="Ubuntu Focal for deployment on sciencedata.dk"
 RUN DEBIAN_FRONTEND=noninteractive apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get -y install ca-certificates
 
+RUN apt update
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y gpg gpgv1
+RUN DEBIAN_FRONTEND=noninteractive apt-key adv --keyserver keyserver.ubuntu.com --recv-keys FE7097963FEFBE72
+
 # Add universe
 #RUN echo "deb http://dk.archive.ubuntu.com/ubuntu focal universe" >> /etc/apt/sources.list
 # Add duck
 RUN echo  "deb [trusted=yes] https://s3.amazonaws.com/repo.deb.cyberduck.io stable main" | tee -a /etc/apt/sources.list.d/cyberduck.list
 
-RUN apt update
+RUN apt update --fix-missing
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang duck cron \
-apt-transport-https wget jq dropbear iputils-ping traceroute php-yaml
-
-RUN DEBIAN_FRONTEND=noninteractive apt-key adv --keyserver keyserver.ubuntu.com --recv-keys FE7097963FEFBE72
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y duck
+apt-transport-https wget jq dropbear iputils-ping traceroute php-yaml duck
 
 ADD start.sh /root/start.sh
 RUN chmod +x /root/start.sh
