@@ -37,8 +37,8 @@ RUN chmod +x /root/start.sh
 RUN chmod go+rx /root/
 
 # Configure locale
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales
-RUN locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
+#RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales
+#RUN locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
 # systemd stuff - not working under docker
 #RUN localectl set-locale LANGUAGE="en_US:en"
 #RUN localectl set-locale LANG="en_US.utf8"
