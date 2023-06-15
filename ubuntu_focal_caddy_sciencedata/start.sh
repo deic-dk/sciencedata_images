@@ -19,7 +19,9 @@ umask 000
 echo "umask 000" >> ~/.bashrc
 
 test -e /root/www/index.* || chmod go+rw "/root/index.php" &&  mv "/root/index.php" "/root/www/"
-service php7.4-fpm start
+phpfpm=`service --status-all 2>&1 | grep php | awk '{print $NF}'`
+service $phpfpm start
+ln -s `basename $(ls /run/php/php*-fpm.sock)` /run/php/php-fpm.sock
 service cron start
 cd /root
 export HOSTNAME

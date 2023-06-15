@@ -48,11 +48,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
 RUN mkdir /run/sshd
 
 # Configure ssh access
-RUN echo "alias ls='ls --color=auto'" >> .bashrc
-RUN echo "PATH=${PATH}:/sbin/:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin" >> ~/.bashrc
-RUN mkdir /root/.ssh
-RUN touch /root/.ssh/authorized_keys
-RUN chmod -R go-rw /root/.ssh
+RUN echo "alias ls='ls --color=auto'" >> .bashrc && \
+  echo "PATH=${PATH}:/sbin/:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin" >> ~/.bashrc &&\
+  mkdir /root/.ssh && touch /root/.ssh/authorized_keys && chmod -R go-rw /root/.ssh
 
 #RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 #RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
@@ -63,6 +61,9 @@ ADD index.php /root/index.php
 ADD start.sh /usr/local/sbin/start.sh
 RUN chmod +x /usr/local/sbin/start.sh \
     && chmod go+rx /root/
+
+RUN apt-get -y autoremove && apt-get -y clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 EXPOSE 22
 EXPOSE 80

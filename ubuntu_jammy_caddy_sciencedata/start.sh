@@ -26,7 +26,9 @@ chmod go+rwx `df | grep -E '^10.0' | awk '{print $NF}'`
 [[ -e /root/www/index.* ]] || chmod go+rw "/root/index.php" &&  mv "/root/index.php" "/root/www/"
 
 service cron start
-service php-fpm start
+phpfpm=`service --status-all 2>&1 | grep php | awk '{print $NF}'`
+service $phpfpm start
+ln -s `basename $(ls /run/php/php*-fpm.sock)` /run/php/php-fpm.sock
 cd /root
 export HOSTNAME
 /usr/bin/caddy start

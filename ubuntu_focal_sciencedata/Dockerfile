@@ -10,10 +10,8 @@ LABEL vendor="sciencedata.dk"
 LABEL version="1.0"
 LABEL description="Ubuntu Focal for deployment on sciencedata.dk"
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install ca-certificates
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install ca-certificates
 
-RUN apt update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y gpg gpgv1
 RUN DEBIAN_FRONTEND=noninteractive apt-key adv --keyserver keyserver.ubuntu.com --recv-keys FE7097963FEFBE72
 
@@ -44,16 +42,14 @@ RUN locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
 RUN mkdir /var/run/sshd
 
 # Configure ssh access
-RUN echo "alias ls='ls --color=auto'" >> .bashrc
-RUN echo "PATH=${PATH}:/sbin/:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin" >> ~/.bashrc
-RUN mkdir /root/.ssh
-RUN touch /root/.ssh/authorized_keys
-RUN chmod -R go-rw /root/.ssh
+RUN echo "alias ls='ls --color=auto'" >> .bashrc &&\
+  echo "PATH=${PATH}:/sbin/:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin" >> ~/.bashrc &&\
+  mkdir /root/.ssh && touch /root/.ssh/authorized_keys && chmod -R go-rw /root/.ssh
 
 #RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 #RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
 
-RUN apt-get clean && \
+RUN apt-get -y autoremove && apt-get clean &&\
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 EXPOSE 22

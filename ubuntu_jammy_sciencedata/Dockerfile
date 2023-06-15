@@ -26,7 +26,7 @@ RUN mkdir -p /usr/local/share/keyrings
 RUN gpg --keyserver keyserver.ubuntu.com --recv-keys FE7097963FEFBE72
 RUN gpg --export FE7097963FEFBE72 > /usr/local/share/keyrings/cyberduck.gpg
 RUN rm -rf /root/.temp-keyring.gpg* /root/.gnupg
-RUN apt update
+RUN apt update --fix-missing
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y duck
 
 # "unminimize" script provided by ubuntu:22.04 container restores expected shell features like installing
@@ -46,21 +46,19 @@ RUN locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
 # Configure keyboard - not necessary
 #RUN DEBIAN_FRONTEND=noninteractive apt-get -y install console-data
 
-RUN apt -y autoremove
+RUN apt -y autoremove && apt clean
 
 RUN mkdir /run/sshd
 
 # Configure ssh access
-RUN echo "alias ls='ls --color=auto'" >> .bashrc
-RUN echo "PATH=${PATH}:/sbin/:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin" >> ~/.bashrc
-RUN mkdir /root/.ssh
-RUN touch /root/.ssh/authorized_keys
-RUN chmod -R go-rw /root/.ssh
+RUN echo "alias ls='ls --color=auto'" >> .bashrc &&\
+  echo "PATH=${PATH}:/sbin/:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin" >> ~/.bashrc &&\
+  mkdir /root/.ssh && touch /root/.ssh/authorized_keys && chmod -R go-rw /root/.ssh
 
 #RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 #RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
 
-RUN apt-get clean && \
+RUN apt-get -y autoremove && apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ADD start.sh /usr/local/sbin/start.sh
