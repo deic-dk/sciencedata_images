@@ -56,6 +56,7 @@ RUN echo "alias ls='ls --color=auto'" >> .bashrc && \
 #RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
 
 # Configure caddy
+RUN sed -i 's|www-data|caddy|' /etc/php/*/fpm/pool.d/www.conf
 ADD Caddyfile /root/Caddyfile
 ADD index.php /root/index.php
 ADD start.sh /usr/local/sbin/start.sh

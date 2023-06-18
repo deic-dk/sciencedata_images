@@ -33,6 +33,7 @@ bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git g
 apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear iputils-ping traceroute php-yaml duck
 
 # Configure caddy
+RUN sed -i 's|www-data|caddy|' /etc/php/*/fpm/pool.d/www.conf
 ADD Caddyfile /root/Caddyfile
 ADD index.php /root/index.php
 ADD start.sh /root/start.sh

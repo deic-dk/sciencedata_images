@@ -202,7 +202,8 @@
 					<!-- Spanish --> <span class="lang">Felicidades!</span>
 					<!-- Chinese --> <span class="lang">恭喜!</span>
 					<!-- Hindi --> <span class="lang">बधाई हो!</span>
-					<!-- Russian --> <span class="lang">Поздравляю! </span>
+					<!-- Russian --> <span class="lang">Поздравляю!
+</span>
 					<span class="emoji">🎊</span>
 				</h1>
 
@@ -213,16 +214,16 @@
 					Caddy is ready to serve your site:
 				</p>
 				<ol>
-					<li>Fire up your favorite file-transter client (we recommend <a href="https://cyberduck.io/">CyberDuck <img src="//cdn.cyberduck.io/img/cyberduck-icon-64.png" class="img-responsive" title="Cyberduck" width="18px" height="18px"></a>) and point it to
+					<li>Fire up your favorite file-transfer client (we recommend <a href="https://cyberduck.io/">CyberDuck <img src="//cdn.cyberduck.io/img/cyberduck-icon-64.png" class="img-responsive" title="Cyberduck" width="18px" height="18px"></a>) and point it to
 						<ul>
-							<li><code>https://sciencedata.dk/storage/</code></li>
+							<li><code>https://<?php trim(printf(`cat /tmp/public_home_server`));?>/storage/</code></li>
 							<!--<li><code>sftp://kube.sciencedata.dk:<?php printf(`printf $SSH_PORT`);?>/root/www/<?php printf(trim(`hostname`));?>/</code></li>-->
 						</ul>
 					</li>
 					<li>Make sure you choose WebDAV (HTTPS) as protocol, then log in with your ScienceData username and <a href="https://sciencedata.dk/sites/user/ManagingFiles/index#toc_head11">device password</a>.
 					<!--In the second case, log in with username <code>root</code> and your SSH key.-->
 					</li>
-					<li>Navigate to your chosen storage folder and pload your site's files.
+					<li>Navigate to your chosen storage folder and upload your site's files.
 					<li>Visit your site!</li>
 				</ol>
 				<h2>If that worked 🥳</h2>
@@ -230,7 +231,9 @@
 					Awesome! You won't have to look at this slanted page anymore.
 				</p>
 				<p>
-					The web server we use is called Caddy. This site is served by one Caddy server over http to another Caddy server, running as reverse proxy on kube.sciencedata.dk and serving over https to the outside world. You can read more about Caddy in the <a href="https://caddyserver.com/docs/">📖 Caddy documentation</a>. Have fun!
+					The web server we use is called Caddy. This site is served by one Caddy server over HTTP to another Caddy server,
+					running as reverse proxy on kube.sciencedata.dk and serving over HTTPS to the outside world.
+					You can read more about Caddy in the <a href="https://caddyserver.com/docs/">📖 Caddy documentation</a>. Have fun!
 				</p>
 
 				<h2>If that didn't work 😶</h2>
@@ -238,8 +241,8 @@
 					It's okay, we can fix it! First check the following inside your container:
 				</p>
 				<ul>
-					<li>Check if <code>/root/www</code> is nfs-mounted inside your container: Execute <code>df -h</code>.</li>
-					<li>Check your Caddy and PHP logs, <code>/var/log/caddy.log</code> and <code>/var/log/php7.4-fpm.log</code>, for errors.</li>
+					<li>Check if <code>/root/www</code> is NFS-mounted inside your container: Execute <code>df -h</code>.</li>
+					<li>Check your Caddy and PHP logs, <code>/var/log/caddy.log</code> and <code>/var/log/php*-fpm.log</code>, for errors.</li>
 					<li>Are your site's files readable by the caddy user and the www-data user? <code>ls -la /root/www/</code>.</li>
 				</ul>
 				<p>
