@@ -12,7 +12,7 @@ if [ ! -e /var/run/sciencedata_software ]; then
 	[[ -n "$HOME_SERVER" ]] && echo "$HOME_SERVER	sciencedata" >> /etc/hosts
 	[[ -n "$HOME_SERVER" ]] && echo "*/5 * * * * root grep sciencedata /etc/hosts || echo \"$HOME_SERVER	sciencedata\" >> /etc/hosts" > /etc/cron.d/sciencedata_hosts
 	# Symlink wolframscript
-	ln -s /usr/local/software/Wolfram/WolframEngine/12.2/Executables/wolframscript /usr/bin/wolframscript
+	ln -s /usr/local/software/Wolfram/Mathematica/*/Executables/wolframscript /usr/bin/wolframscript
 	touch /var/run/sciencedata_software
 fi
 
@@ -32,15 +32,14 @@ if [[ -n "$SETUP_MATHEMATICA" && -d /usr/local/software/Wolfram && -n "$MMA_LICE
 		cd
 		mkdir -p ~/.Mathematica/Licensing
 		echo '!'"${MMA_LICENSE_SERVER}" > ~/.Mathematica/Licensing/mathpass
-		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=/usr/local/software/Wolfram/Mathematica/12.1/Executables/WolframKernel
+		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=/usr/local/software/Wolfram/Mathematica/*/Executables/WolframKernel
 		# This takes a long time (it's apparently running some license unprotect stuff with Wolfram HQ)
-		~/WolframLanguageForJupyter/configure-jupyter.wls add
+		/usr/local/software/Wolfram/WolframLanguageForJupyter/configure-jupyter.wls add
 	elif [[ -n "$MMA_MATHPASS" ]]; then
 		cd
 		mkdir -p ~/.Mathematica/Licensing
 		echo "${MMA_MATHPASS}" > ~/.Mathematica/Licensing/mathpass
-		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=/usr/local/software/Wolfram/Mathematica/12.1/Executables/WolframKernel
-		~/WolframLanguageForJupyter/configure-jupyter.wls add
-		mv ~/WolframLanguageForJupyter /tmp/
+		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=/usr/local/software/Wolfram/Mathematica/*/Executables/WolframKernel
+		/usr/local/software/Wolfram/WolframLanguageForJupyter/configure-jupyter.wls add
 	fi
 fi
