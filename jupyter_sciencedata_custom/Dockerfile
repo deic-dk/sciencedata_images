@@ -27,7 +27,6 @@ USER $NB_UID
 
 # Keep notebooks in sciencedata homedir
 RUN pip install pycurl webdavclient3
-#RUN git clone https://github.com/deic-dk/jupyter_sciencedata.git
 ADD https://api.github.com/repos/deic-dk/jupyter_sciencedata/git/refs/heads/main version.json
 RUN sudo chown "${NB_USER}":users version.json
 RUN git clone -b main https://github.com/deic-dk/jupyter_sciencedata.git
@@ -112,4 +111,6 @@ RUN cp /opt/conda/etc/jupyter/jupyter_notebook_config.d/jupyter_nbextensions_con
 /opt/conda/etc/jupyter/jupyter_server_config.d/jupyter_nbextensions_configurator.json &&\
 sed -i 's|NotebookApp|ServerApp|' /opt/conda/etc/jupyter/jupyter_server_config.d/jupyter_nbextensions_configurator.json
 RUN jupyter nbextensions_configurator enable
+
+RUN rm -rf /home/$NB_USER/*
 
