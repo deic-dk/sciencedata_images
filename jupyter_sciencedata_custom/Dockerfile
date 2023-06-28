@@ -26,7 +26,7 @@ RUN chmod +x /usr/local/bin/start-notebook.d/*
 USER $NB_UID
 
 # Keep notebooks in sciencedata homedir
-RUN pip install webdavclient3
+RUN pip install pycurl webdavclient3
 #RUN git clone https://github.com/deic-dk/jupyter_sciencedata.git
 ADD https://api.github.com/repos/deic-dk/jupyter_sciencedata/git/refs/heads/main version.json
 RUN sudo chown "${NB_USER}":users version.json
@@ -35,6 +35,7 @@ RUN pip install jupyter_sciencedata/
 
 # TOC extension
 RUN echo "export PATH=$PATH:~/.local/bin" >> ~/.bashrc
+RUN pip install webcolors uri-template jsonpointer isoduration fqdn
 RUN conda install --quiet --yes jupyter_contrib_nbextensions
 
 RUN jupyter contrib nbextension install --user
@@ -70,12 +71,14 @@ RUN pip install einsteinpy
 RUN pip install astropy astroquery notebook git+https://github.com/radio-astro-tools/spectral-cube radio-beam reproject dust_extinction gala dust_extinction synphot
 
 # For riemann_book
-RUN pip install clawpack
+RUN conda install clawpack
 
 # Spinning wheel on ajax calls
-RUN cp jupyter_sciencedata/custom/* /opt/conda/lib/python3.8/site-packages/notebook/static/custom/
+RUN cp jupyter_sciencedata/custom/* /opt/conda/lib/python3.8/site-packages/notebook/static/custom/ || echo "No notebook/static"
+RUN cp jupyter_sciencedata/custom/* /opt/conda/lib/python3.8/site-packages/nbclassic/static/custom/ || echo "No nbclassic/static"
 
-RUN pip install sddk
+# sddk apparently needs kaleido
+RUN pip install kaleido sddk
 # For now, manually override with updated version
 RUN curl -L -o /opt/conda/lib/python3.8/site-packages/sddk/__init__.py https://raw.githubusercontent.com/deic-dk/sddk_py/master/sddk/__init__.py
 
@@ -86,4 +89,27 @@ RUN sed -i -r 's|(or not ssl_\.HAS_NEVER_CHECK_COMMON_NAME)|\1 or server_hostnam
 # Fix https://github.com/ipython-contrib/jupyter_contrib_nbextensions/issues/1529
 RUN grep -r template_path /opt/conda/lib/python3.8/site-packages/jupyter_contrib_nbextensions | grep '.py:' | while read line; do name=`echo $line | awk -F: '{print $1}'`; grep template_paths "$name" || sed -i 's|template_path|template_paths|g' "$name"; done
 RUN grep -r template_path /opt/conda/lib/python3.8/site-packages/latex_envs | grep '.py:' | while read line; do name=`echo $line | awk -F: '{print $1}'`; grep template_paths "$name" || sed -i 's|template_path|template_paths|g' "$name"; done
+
+# Fix what appears to be a Jupyter bug - preventing JupyterLab from starting
+RUN sed -i -r 's|(self\.contents_manager\.preferred_dir)|#\1|' /opt/conda/lib/python3.8/site-packages/jupyter_server/serverapp.py
+
+# Enable nbextensions tab in nbclassic
+#RUN cp -r /opt/conda/lib/python3.8/site-packages/jupyter_nbextensions_configurator/static/nbextensions_configurator \
+#~/.local/share/jupyter/nbextensions/
+RUN rm -rf ~/.local/share/jupyter/nbextensions/*
+RUN cd /opt/conda/lib/python3.8/site-packages/jupyter_nbextensions_configurator;  cp -r static/nbextensions_configurator \
+/opt/conda/share/jupyter/nbextensions/ && cp -r application.py templates \
+/opt/conda/share/jupyter/nbextensions/nbextensions_configurator/
+
+RUN sed -i -r "s|(\{\{super\(\)\}\})|\1\n<script src=\"/static/notebook/js/main.min.js\" type=\"text/javascript\" charset=\"utf-8\"></script>|" \
+/opt/conda/lib/python3.8/site-packages/jupyter_nbextensions_configurator/templates/nbextensions_configurator.html
+
+# Keep notebooks in sciencedata homedir ('/files')
+RUN echo "from jupyter_sciencedata import JupyterScienceData" >> /etc/jupyter/jupyter_notebook_config.py &&\
+echo "c.NotebookApp.contents_manager_class = 'jupyter_sciencedata.JupyterScienceData'" >> /etc/jupyter/jupyter_notebook_config.py
+
+RUN cp /opt/conda/etc/jupyter/jupyter_notebook_config.d/jupyter_nbextensions_configurator.json \
+/opt/conda/etc/jupyter/jupyter_server_config.d/jupyter_nbextensions_configurator.json &&\
+sed -i 's|NotebookApp|ServerApp|' /opt/conda/etc/jupyter/jupyter_server_config.d/jupyter_nbextensions_configurator.json
+RUN jupyter nbextensions_configurator enable
 

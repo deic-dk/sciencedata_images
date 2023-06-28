@@ -139,12 +139,17 @@ RUN wget --quiet "https://github.com/conda-forge/miniforge/releases/download/${m
 # Correct permissions
 # Do all this in a single RUN command to avoid duplicating all of the
 # files across image layers when the permissions change
+#RUN conda install --quiet --yes \
+#    'notebook=6.2.0' \
+#    'jupyterhub=1.3.0' \
+#    'jupyterlab=3.5.3' && \
 RUN conda install --quiet --yes \
-    'notebook=6.2.0' \
-    'jupyterhub=1.3.0' \
-    'jupyterlab=3.0.5' && \
+    'notebook' \
+    'jupyter_server=2.*' \
+    'nbclassic' \
+    'jupyterlab' && \
     conda clean --all -f -y && \
-    npm cache clean --force && \
+    ( ( which npm && npm cache clean --force ) || echo "no pm" ) && \
     jupyter notebook --generate-config && \
     jupyter lab clean && \
     rm -rf /home/$NB_USER/.cache/yarn && \
@@ -213,34 +218,34 @@ USER $NB_UID
 
 # Install Python 3 packages
 RUN conda install --quiet --yes \
-    'beautifulsoup4=4.9.*' \
+    'beautifulsoup4' \
     'conda-forge::blas=*=openblas' \
-    'bokeh=2.2.*' \
-    'bottleneck=1.3.*' \
-    'cloudpickle=1.6.*' \
-    'cython=0.29.*' \
-    'dask=2021.1.*' \
-    'dill=0.3.*' \
-    'h5py=3.1.*' \
-    'ipywidgets=7.6.*' \
-    'ipympl=0.6.*'\
-    'matplotlib-base=3.3.*' \
-    'numba=0.52.*' \
-    'numexpr=2.7.*' \
-    'pandas=1.2.*' \
-    'patsy=0.5.*' \
-    'protobuf=3.14.*' \
-    'pytables=3.6.*' \
-    'scikit-image=0.18.*' \
-    'scikit-learn=0.24.*' \
-    'scipy=1.6.*' \
-    'seaborn=0.11.*' \
-    'sqlalchemy=1.3.*' \
-    'statsmodels=0.12.*' \
-    'sympy=1.7.*' \
-    'vincent=0.4.*' \
-    'widgetsnbextension=3.5.*'\
-    'xlrd=2.0.*' && \
+    'bokeh' \
+    'bottleneck' \
+    'cloudpickle*' \
+    'cython' \
+    'dask' \
+    'dill' \
+    'h5py' \
+    'ipywidgets' \
+    'ipympl'\
+    'matplotlib-base' \
+    'numba' \
+    'numexpr' \
+    'pandas' \
+    'patsy' \
+    'protobuf' \
+    'pytables' \
+    'scikit-image' \
+    'scikit-learn' \
+    'scipy' \
+    'seaborn' \
+    'sqlalchemy' \
+    'statsmodels' \
+    'sympy' \
+    'vincent' \
+    'widgetsnbextension'\
+    'xlrd' && \
     conda clean --all -f -y && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
@@ -307,23 +312,23 @@ USER $NB_UID
 
 # R packages including IRKernel which gets installed globally.
 RUN conda install --quiet --yes \
-    'r-base=4.0.3'  \
-    'r-caret=6.0*' \
-    'r-crayon=1.3*' \
-    'r-devtools=2.3*' \
-    'r-forecast=8.13*' \ 
-    'r-hexbin=1.28*' \
-    'r-htmltools=0.5*' \
-    'r-htmlwidgets=1.5*' \ 
-    'r-irkernel=1.1*' \
-    'r-nycflights13=1.0*' \
-    'r-randomforest=4.6*' \
-    'r-rcurl=1.98*' \
-    'r-rmarkdown=2.6*' \
-    'r-rsqlite=2.2*' \
-    'r-shiny=1.5*' \
-    'r-tidyverse=1.3*' \
-    'rpy2=3.4*' && \
+    'r-base'  \
+    'r-caret' \
+    'r-crayon' \
+    'r-devtools' \
+    'r-forecast' \ 
+    'r-hexbin' \
+    'r-htmltools' \
+    'r-htmlwidgets' \ 
+    'r-irkernel' \
+    'r-nycflights13' \
+    'r-randomforest' \
+    'r-rcurl' \
+    'r-rmarkdown' \
+    'r-rsqlite' \
+    'r-shiny' \
+    'r-tidyverse' \
+    'rpy2' && \
     conda clean --all -f -y && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
@@ -343,3 +348,4 @@ RUN julia -e 'import Pkg; Pkg.update()' && \
     chmod -R go+rx "${CONDA_DIR}/share/jupyter" && \
     rm -rf "${HOME}/.local" && \
     fix-permissions "${JULIA_PKGDIR}" "${CONDA_DIR}/share/jupyter"
+
