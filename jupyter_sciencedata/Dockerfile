@@ -188,6 +188,7 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     telnet \
     git \
     curl \
+    openssh-client \
     file \
     zip \
     inkscape \
@@ -349,3 +350,5 @@ RUN julia -e 'import Pkg; Pkg.update()' && \
     rm -rf "${HOME}/.local" && \
     fix-permissions "${JULIA_PKGDIR}" "${CONDA_DIR}/share/jupyter"
 
+WORKDIR $HOME
+RUN rm -rf /home/$NB_USER/work
