@@ -32,12 +32,24 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools i
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang cron \
 apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear iputils-ping traceroute php-yaml duck
 
+# Create user www with UID 80 - to support r/w on NFS-mounted ScienceData partition.
+# When starting caddy as root, it switches to the user with $HOME /var/lib/caddy
+RUN sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
+    sed -i.bak -e 's/^%sudo/#%sudo/' /etc/sudoers && \
+    deluser caddy && \
+    adduser --uid 80 --home /var/lib/caddy --disabled-password --gecos '' www && \
+    chown -R www:www /var/lib/caddy
+
+#RUN echo "www:secret" | chpasswd
+RUN echo "www ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/www && chmod 0440 /etc/sudoers.d/www
+
 # Configure caddy
-RUN sed -i 's|www-data|caddy|' /etc/php/*/fpm/pool.d/www.conf
-ADD Caddyfile /root/Caddyfile
-ADD index.php /root/index.php
-ADD start.sh /root/start.sh
-RUN chmod +x /root/start.sh && chmod go+rx /root/
+RUN sed -i 's|www-data|www|' /etc/php/*/fpm/pool.d/www.conf
+ADD Caddyfile /etc/caddy/Caddyfile
+ADD index.php /tmp/index.php
+ADD start.sh /usr/local/sbin/start.sh
+RUN chmod +x /usr/local/sbin/start.sh
+RUN rmdir /var/log/caddy && touch /var/log/caddy.log && chown www:www /var/log/caddy.log
 
 # Configure locale
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales
@@ -49,15 +61,11 @@ RUN locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
 # Configure keyboard - not necessary
 #RUN DEBIAN_FRONTEND=noninteractive apt-get -y install console-data
 
-RUN mkdir /var/run/sshd
-
 # Configure ssh access
 RUN echo "alias ls='ls --color=auto'" >> .bashrc &&\
   echo "PATH=${PATH}:/sbin/:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin" >> ~/.bashrc &&\
-  mkdir /root/.ssh && touch /root/.ssh/authorized_keys && chmod -R go-rw /root/.ssh
-
-#RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
-#RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
+  mkdir /var/lib/caddy/.ssh && touch /var/lib/caddy/.ssh/authorized_keys  && \
+  chown -R www:www /var/lib/caddy/.ssh && chmod -R go-rw /var/lib/caddy/.ssh
 
 RUN apt-get -y autoremove && apt-get -y clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -67,6 +75,4 @@ EXPOSE 80
 # Caddy runs admin endpoint on port 2019
 #EXPOSE 2019
 
-#CMD ["/usr/sbin/sshd", "-D"]
-#ENTRYPOINT ["/root/start.sh"]
-CMD ["/root/start.sh"]
+CMD ["/usr/local/sbin/start.sh"]
