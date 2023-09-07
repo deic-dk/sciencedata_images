@@ -30,7 +30,7 @@ RUN apt update --fix-missing
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang cron \
-apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear iputils-ping traceroute php-yaml duck
+apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear openssh-sftp-server iputils-ping traceroute php-yaml duck
 
 # Create user www with UID 80 - to support r/w on NFS-mounted ScienceData partition.
 # When starting caddy as root, it switches to the user with $HOME /var/lib/caddy

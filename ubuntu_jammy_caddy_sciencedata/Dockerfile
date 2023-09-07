@@ -29,7 +29,7 @@ RUN apt update --fix-missing
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang duck cron \
-apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear iputils-ping traceroute php-yaml
+apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear openssh-sftp-server iputils-ping traceroute php-yaml
 
 # "unminimize" script provided by ubuntu:22.04 container restores expected shell features like installing
 # man pages. The script itself is interactive, so this a modified version that runs without interaction
