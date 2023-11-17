@@ -1,8 +1,8 @@
 # Copyright ScienceData team
 # Distributed under the terms of the Modified BSD License.
 
-# Build command: docker build -t sciencedata/jupyter_sciencedata_custom .
-# Push command: docker push sciencedata/jupyter_sciencedata_custom
+# Build command: docker build -t sciencedata/jupyter_sciencedata_custom:1.1 .
+# Push command: docker push sciencedata/jupyter_sciencedata_custom:1.1
 # Run command: docker run -p 8080:80 -p 4022:22 sciencedata/jupyter_sciencedata_custom
 
 FROM sciencedata/jupyter_sciencedata
@@ -62,6 +62,13 @@ RUN sed -i 's|2 (\(default\))|2|' '/home/sciencedata/.local/share/jupyter/nbexte
 # Bash kernel
 RUN conda install --quiet --yes bash_kernel
 RUN python -m bash_kernel.install
+
+# ROOT kernel
+RUN sudo apt update
+RUN sudo apt install libglu1-mesa libopengl0
+RUN pip install metakernel
+RUN pip install zmq
+RUN conda install root -c conda-forge
 
 # For the ensteinpy examples
 RUN pip install einsteinpy
