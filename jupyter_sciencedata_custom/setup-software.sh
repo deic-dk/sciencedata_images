@@ -50,32 +50,6 @@ if [[ -n "$SETUP_MATLAB" && -d /usr/local/software/matlab && -n "$MATLAB_LICENSE
 	jupyter kernelspec remove -y matlab_connect
 fi
 
-# From https://github.com/wesketchum/Sample_Notebooks#starting-the-root-notebook-the-jupyter-way
-if [[ -n "$SETUP_ROOT" && -n "$ROOTSYS" ]]; then
-
-	# Set up a working root. - Dropped root from cvmfs, as this only exists with incomaptible versions of gcc and python
-	# Instead use the one installed via conda - compiled against python3.8
-
-	# /cvmfs/sft.cern.ch/lcg/releases/ROOT/6.28.04-6d2cc/x86_64-ubuntu2004-gcc9-opt/bin/thisroot.sh
-	#. "$ROOTSYS/bin/thisroot.sh"
-	#export PATH=/opt/conda/bin:$PATH
-	#sudo ln -s /cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-ubuntu2004-gcc9-opt/bin/python3.9 /usr/local/bin/python3.9
-	
-	#. /cvmfs/sft.cern.ch/lcg/releases/ROOT/6.28.04-6d2cc/x86_64-ubuntu2004-gcc9-opt/bin/thisroot.sh
-	#export ROOT_INCLUDE_PATH=/cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-ubuntu2004-gcc9-opt/include/Geant4:/cvmfs/sft.cern.ch/lcg/releases/jsonmcpp/3.10.5-f26c3/x86_64-ubuntu2004-gcc9-opt/include:/cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-ubuntu2004-gcc9-opt/src/cpp:/cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-ubuntu2004-gcc9-opt/include:/cvmfs/sft.cern.ch/lcg/releases/Python/3.9.12-1a716/x86_64-ubuntu2004-gcc9-opt/include/python3.9
-	#export CPPYY_BACKEND_LIBRARY=/cvmfs/sft.cern.ch/lcg/releases/ROOT/6.28.04-6d2cc/x86_64-ubuntu2004-gcc9-opt/lib/libcppyy_backend3_9
-	#export ROOTSYS=/cvmfs/sft.cern.ch/lcg/releases/ROOT/6.28.04-6d2cc/x86_64-ubuntu2004-gcc9-opt
-	#export LD_LIBRARY_PATH=/cvmfs/sft.cern.ch/lcg/releases/MCGenerators/thepeg/2.2.3-a9c9d/x86_64-ubuntu2004-gcc9-opt/lib/ThePEG:/cvmfs/sft.cern.ch/lcg/releases/MCGenerators/herwig++/7.2.3-0dab3/x86_64-ubuntu2004-gcc9-opt/lib/Herwig:/cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-ubuntu2004-gcc9-opt/lib/python3.9/site-packages/jaxlib/mlir/_mlir_libs:/cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-ubuntu2004-gcc9-opt/lib/python3.9/site-packages/torch/lib:/cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-ubuntu2004-gcc9-opt/lib/python3.9/site-packages/tensorflow:/cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-ubuntu2004-gcc9-opt/lib/python3.9/site-packages/tensorflow/contrib/tensor_forest:/cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-ubuntu2004-gcc9-opt/lib/python3.9/site-packages/tensorflow/python/framework:/cvmfs/sft.cern.ch/lcg/releases/java/8u362-88cd4/x86_64-ubuntu2004-gcc9-opt/jre/lib/amd64:/cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-ubuntu2004-gcc9-opt/lib64:/cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-ubuntu2004-gcc9-opt/lib
-	#export PYTHONPATH=/opt/conda/lib/python3.8:$PYTHONPATH:/cvmfs/sft.cern.ch/lcg/releases/ROOT/6.28.04-6d2cc/x86_64-ubuntu2004-gcc9-opt/lib/JupyROOT
-	#unset JUPYTER_PATH
-	#unset JUPYTER_CONFIG_DIR
-	
-	cp -r `ls -d $ROOTSYS/etc/notebook/* | grep -v jupyter_notebook_config.py` /etc/jupyter/
-	cat $ROOTSYS/etc/notebook/jupyter_notebook_config.py >> /etc/jupyter/jupyter_notebook_config.py
-	cp -r "$ROOTSYS/etc/notebook/kernels/root" ~/.local/share/jupyter/kernels/
-	sudo echo "c.NotebookApp.extra_static_paths = ['$ROOTSYS/js']" >> /etc/jupyter/jupyter_notebook_config.py
-fi
-
 # For LCG software, SETUP_SCRIPT could be /cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-ubuntu2004-gcc9-opt/setup.sh
 if [[ -n "$SETUP_SCRIPT" && -f "$SETUP_SCRIPT" ]]; then
 	. "$SETUP_SCRIPT"
