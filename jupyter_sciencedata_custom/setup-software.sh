@@ -12,6 +12,10 @@ if [[ ! -e /var/run/sciencedata_software ]]; then
 fi
 END
 
+# Make sure that in the container we're in the homedir (ROOT writes tmp files to cwd)
+sed -i -E "s|(import sys)|\1\nimport os|" /opt/conda/lib/python3.8/site-packages/JupyROOT/__init__.py
+echo 'os.chdir(os.path.expanduser("~"))|' >> /opt/conda/lib/python3.8/site-packages/JupyROOT/__init__.py
+
 # Fix what appears to be a Jupyter bug
 if [[ -e /opt/conda/lib/python*/site-packages/nbclassic/nbserver.py && -n "$JUPYTER_ENABLE_LAB" ]]; then
 	sed -i -r "s|^(manager\.link_extension\(name)(, serverapp\))|\1)\n                #\1\2|" /opt/conda/lib/python*/site-packages/nbclassic/nbserver.py
