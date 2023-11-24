@@ -24,7 +24,8 @@ RUN apt update --fix-missing
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang duck cron \
-apt-transport-https wget jq dropbear openssh-sftp-server iputils-ping traceroute php-yaml duck
+apt-transport-https wget jq dropbear openssh-sftp-server iputils-ping traceroute php-yaml \
+libxcb-shm0 libxcb-render0 libxrender1 libxpm4 libpciaccess0
 
 ADD start.sh /root/start.sh
 RUN chmod +x /root/start.sh

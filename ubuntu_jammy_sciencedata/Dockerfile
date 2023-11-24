@@ -18,7 +18,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -y install ca-certificates
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang duck cron \
-apt-transport-https wget jq iputils-ping traceroute man-db dropbear openssh-sftp-server php-yaml
+apt-transport-https wget jq iputils-ping traceroute man-db dropbear openssh-sftp-server php-yaml \
+libxcb-shm0 libxcb-render0 libxrender1 libxpm4 libpciaccess0
 
 # Add cyberduck, get key manually due to apt-key deprecation
 RUN echo "deb [signed-by=/usr/local/share/keyrings/cyberduck.gpg] https://s3.amazonaws.com/repo.deb.cyberduck.io stable main" | tee -a /etc/apt/sources.list.d/cyberduck.list
