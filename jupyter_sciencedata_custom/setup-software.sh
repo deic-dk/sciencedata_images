@@ -26,22 +26,40 @@ if [[ -n "$SETUP_MATHEMATICA" && -d /usr/local/software/Wolfram ]]; then
 	sudo ln -s /usr/local/software/Wolfram/Mathematica/*/Executables/wolframscript /usr/bin/wolframscript
 	sudo chown -R sciencedata /usr/local/software/Wolfram/WolframLanguageForJupyter
 	if [[ -n "$MMA_LICENSE_SERVER" ]]; then
+		# First check if we're a DTU user
+		user_domain=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\2|'`
+		user_name=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\1|'`
+		if [[ "$user_domain" != "dtu.dk" || "$user_name" == "$SD_UI" || "$user_name" == "" ]]; then
+			echo "Only DTU users are allowed to use Mathematica"
+			exit 0
+		fi
 		cd
-		mkdir -p ~/.Mathematica/Licensing
-		echo '!'"${MMA_LICENSE_SERVER}" > ~/.Mathematica/Licensing/mathpass
-		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=`ls /usr/local/software/Wolfram/Mathematica/*/Executables/WolframKernel`
+		sudo -u $user_name mkdir -p /home/$user_name/.Mathematica/Licensing
+		sudo -u $user_name bash -c "echo \!${MMA_LICENSE_SERVER} > /home/$user_name/.Mathematica/Licensing/mathpass"
+		if [[ "$user_name" != "`whoami`" ]]; then
+			tar -cvzf /tmp/homedir.tar.gz .bashrc .conda .jupyter
+			sudo -u $user_name bash -c "cd; tar -xvzf /tmp/homedir.tar.gz"
+		fi
+		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=`ls /usr/local/software/Wolfram/Mathematica/*/Executables/WolframKernelWrapper`
 		# This takes a long time (it's apparently running some license unprotect stuff with Wolfram HQ)
 		/usr/local/software/Wolfram/WolframLanguageForJupyter/configure-jupyter.wls add
 	elif [[ -n "$MMA_MATHPASS" ]]; then
 		cd
 		mkdir -p ~/.Mathematica/Licensing
 		echo "${MMA_MATHPASS}" > ~/.Mathematica/Licensing/mathpass
-		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=/usr/local/software/Wolfram/Mathematica/*/Executables/WolframKernel
+		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=`ls /usr/local/software/Wolfram/Mathematica/*/Executables/WolframKernelWrapper`
 		/usr/local/software/Wolfram/WolframLanguageForJupyter/configure-jupyter.wls add
 	fi
 fi
 
 if [[ -n "$SETUP_MATLAB" && -d /usr/local/software/matlab && -n "$MATLAB_LICENSE_SERVER" && -n "$MATLAB_LICENSE_PORT" ]]; then
+	# First check if we're a DTU user
+	user_domain=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\2|'`
+	user_name=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\1|'`
+	if [[ "$user_domain" != "dtu.dk" || "$user_name" == "$SD_UI" || "$user_name" == "" ]]; then
+		echo "Only DTU users are allowed to use MATLAB"
+		exit 0
+	fi
 	export LM_LICENSE_FILE="$MATLAB_LICENSE_PORT@$MATLAB_LICENSE_SERVER"
 	grep LM_LICENSE_FILE ~/.bashrc >& /dev/null || echo "export LM_LICENSE_FILE=$MATLAB_LICENSE_PORT@$MATLAB_LICENSE_SERVER" >> ~/.bashrc
 	sudo ln -s /usr/local/software/matlab/bin/matlab /usr/local/bin/matlab
