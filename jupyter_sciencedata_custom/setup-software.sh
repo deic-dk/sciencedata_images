@@ -34,11 +34,14 @@ if [[ -n "$SETUP_MATHEMATICA" && -d /usr/local/software/Wolfram ]]; then
 			exit 0
 		fi
 		cd
+		sudo adduser --disabled-password --gecos '' $user_name
+		sudo bash -c "echo \"www ALL=(ALL) NOPASSWD: ALL\" > /etc/sudoers.d/$user_name && chmod 0440 /etc/sudoers.d/$user_name"
 		sudo -u $user_name mkdir -p /home/$user_name/.Mathematica/Licensing
 		sudo -u $user_name bash -c "echo \!${MMA_LICENSE_SERVER} > /home/$user_name/.Mathematica/Licensing/mathpass"
 		if [[ "$user_name" != "`whoami`" ]]; then
-			tar -cvzf /tmp/homedir.tar.gz .bashrc .conda .jupyter
-			sudo -u $user_name bash -c "cd; tar -xvzf /tmp/homedir.tar.gz"
+			tar -czf /tmp/homedir.tar.gz .bashrc .conda .jupyter
+			sudo -u $user_name bash -c "cd; tar -xzf /tmp/homedir.tar.gz"
+			echo "export `env | grep SD_UID`" >> ~/.bashrc
 		fi
 		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=`ls /usr/local/software/Wolfram/Mathematica/*/Executables/WolframKernelWrapper`
 		# This takes a long time (it's apparently running some license unprotect stuff with Wolfram HQ)
