@@ -43,7 +43,7 @@ if [[ -n "$SETUP_MATHEMATICA" && -d "$MATHEMATICA_SOFTWARE_DIR" ]]; then
 	sudo chown -R sciencedata "$WOLFRAM_JUPYTER_DIR"
 	if [[ -n "$MMA_LICENSE_SERVER" ]]; then
 		# First check if we'r an allowed test user
-		user_line=`grep -E "^$SD_UID:" USER_MAPPING`
+		user_line=`grep -E "^$SD_UID:" $USER_MAPPING`
 		user_name=`echo $user_line | awk -F : '{print $2}'`
 		#  Check if we're a DTU user
 		if [ -z "$user_name" ]; then
