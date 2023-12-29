@@ -3,6 +3,15 @@
 # Copyright (c) ScienceData Development Team.
 # Distributed under the terms of the Modified BSD License.
 
+MATHEMATICA_SOFTWARE_DIR=`ls -d /usr/local/software/Wolfram/Mathematica/* | sort | tail -1`
+WOLFRAM_JUPYTER_DIR=/usr/local/software/Wolfram/WolframLanguageForJupyter
+EXTRA_SOFTWARE_DIR=/usr/local/software/extra
+USER_MAPPING=/usr/local/software/extra/user_mapping.txt
+
+MATLAB_SOFTWARE_DIR=/usr/local/software/matlab
+
+PYTHON=/opt/conda/bin/python
+
 sudo bash<<END
 export PATH=/opt/conda/bin:$PATH
 if [[ ! -e /var/run/sciencedata_software ]]; then
@@ -13,49 +22,56 @@ fi
 END
 
 # Make sure that in the container we're in the homedir (ROOT writes tmp files to cwd)
-sed -i -E "s|(import sys)|\1\nimport os|" /opt/conda/lib/python3.8/site-packages/JupyROOT/__init__.py
-echo 'os.chdir(os.path.expanduser("~"))' >> /opt/conda/lib/python3.8/site-packages/JupyROOT/__init__.py
+sed -i -E "s|(import sys)|\1\nimport os|" /opt/conda/lib/python*/site-packages/JupyROOT/__init__.py
+echo 'os.chdir(os.path.expanduser("~"))' >> /opt/conda/lib/python*/site-packages/JupyROOT/__init__.py
 
 # Fix what appears to be a Jupyter bug
 if [[ -e /opt/conda/lib/python*/site-packages/nbclassic/nbserver.py && -n "$JUPYTER_ENABLE_LAB" ]]; then
 	sed -i -r "s|^(manager\.link_extension\(name)(, serverapp\))|\1)\n                #\1\2|" /opt/conda/lib/python*/site-packages/nbclassic/nbserver.py
 fi
 
-if [[ -n "$SETUP_MATHEMATICA" && -d /usr/local/software/Wolfram ]]; then
+if [[ -n "$SETUP_MATHEMATICA" && -d "$MATHEMATICA_SOFTWARE_DIR" ]]; then
+
+	# Patch Mathematica and WolframKernel
+	for file in WolframKernel Mathematica; do
+		grep OVERRIDE_USER "$MATHEMATICA_SOFTWARE_DIR/Executables/$file" >& /dev/null || \
+		sed -E -i.orig "s/^(#  Copyright .*)$/\1\nuser_domain=\`echo \$SD_UID | sed -E 's|^\([^@]+\)@\([^@]+\)$|\\\2|'\`\nuser_name=\`echo \$SD_UID | sed -E 's|^\([^@]+\)@\([^@]+\)$|\\\1|'\`\nexport LD_PRELOAD=\/usr\/local\/software\/extra\/getpwuid_modify.so\nexport OVERRIDE_USER=$user_name/" "$MATHEMATICA_SOFTWARE_DIR/Executables/$file"
+	done
+
 	# Symlink wolframscript
-	sudo ln -s /usr/local/software/Wolfram/Mathematica/*/Executables/wolframscript /usr/bin/wolframscript
-	sudo chown -R sciencedata /usr/local/software/Wolfram/WolframLanguageForJupyter
+	sudo ln -s "$MATHEMATICA_SOFTWARE_DIR/Executables/wolframscript" /usr/bin/wolframscript
+	sudo chown -R sciencedata "$WOLFRAM_JUPYTER_DIR"
 	if [[ -n "$MMA_LICENSE_SERVER" ]]; then
-		# First check if we're a DTU user
-		user_domain=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\2|'`
-		user_name=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\1|'`
-		if [[ "$user_domain" != "dtu.dk" || "$user_name" == "$SD_UI" || "$user_name" == "" ]]; then
-			echo "Only DTU users are allowed to use Mathematica"
-			exit 0
+		# First check if we'r an allowed test user
+		user_line=`grep -E "^$SD_UID:" USER_MAPPING`
+		user_name=`echo $user_line | awk -F : '{print $2}'`
+		#  Check if we're a DTU user
+		if [ -z "$user_name" ]; then
+			user_domain=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\2|'`
+			user_name=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\1|'`
+			if [[ "$user_domain" != "dtu.dk" || "$user_name" == "$SD_UI" || "$user_name" == "" ]]; then
+				echo "Only DTU users are allowed to use Mathematica"
+				exit 0
+			fi
 		fi
-		cd
-		sudo adduser --disabled-password --gecos '' $user_name
-		sudo bash -c "echo \"www ALL=(ALL) NOPASSWD: ALL\" > /etc/sudoers.d/$user_name && chmod 0440 /etc/sudoers.d/$user_name"
-		sudo -u $user_name mkdir -p /home/$user_name/.Mathematica/Licensing
-		sudo -u $user_name bash -c "echo \!${MMA_LICENSE_SERVER} > /home/$user_name/.Mathematica/Licensing/mathpass"
-		if [[ "$user_name" != "`whoami`" ]]; then
-			tar -czf /tmp/homedir.tar.gz .bashrc .conda .jupyter
-			sudo -u $user_name bash -c "cd; tar -xzf /tmp/homedir.tar.gz"
-			echo "export `env | grep SD_UID`" >> ~/.bashrc
-		fi
-		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=`ls /usr/local/software/Wolfram/Mathematica/*/Executables/WolframKernelWrapper`
-		# This takes a long time (it's apparently running some license unprotect stuff with Wolfram HQ)
-		/usr/local/software/Wolfram/WolframLanguageForJupyter/configure-jupyter.wls add
+		mkdir -p ~/.Mathematica/Licensing
+		echo '!'"${MMA_LICENSE_SERVER}" > ~/.Mathematica/Licensing/mathpass
+		export OVERRIDE_USER=$user_name
+		export LD_PRELOAD="$EXTRA_SOFTWARE_DIR/getpwuid_modify.so"
+		echo "export OVERRIDE_USER=$user_name" >> ~/.bashrc
+		echo "export LD_PRELOAD=\"$EXTRA_SOFTWARE_DIR/getpwuid_modify.so\"" >> ~/.bashrc
+		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=$MATHEMATICA_SOFTWARE_DIR/Executables/WolframKernel
+		# This may take a long time (it's apparently running some license unprotect stuff with Wolfram HQ)
+		"$WOLFRAM_JUPYTER_DIR/configure-jupyter.wls" add
 	elif [[ -n "$MMA_MATHPASS" ]]; then
-		cd
 		mkdir -p ~/.Mathematica/Licensing
 		echo "${MMA_MATHPASS}" > ~/.Mathematica/Licensing/mathpass
-		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=`ls /usr/local/software/Wolfram/Mathematica/*/Executables/WolframKernelWrapper`
-		/usr/local/software/Wolfram/WolframLanguageForJupyter/configure-jupyter.wls add
+		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=$MATHEMATICA_SOFTWARE_DIR/Executables/WolframKernel
+		"$WOLFRAM_JUPYTER_DIR/configure-jupyter.wls" add
 	fi
 fi
 
-if [[ -n "$SETUP_MATLAB" && -d /usr/local/software/matlab && -n "$MATLAB_LICENSE_SERVER" && -n "$MATLAB_LICENSE_PORT" ]]; then
+if [[ -n "$SETUP_MATLAB" && -d "$MATLAB_SOFTWARE_DIR" && -n "$MATLAB_LICENSE_SERVER" && -n "$MATLAB_LICENSE_PORT" ]]; then
 	# First check if we're a DTU user
 	user_domain=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\2|'`
 	user_name=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\1|'`
@@ -65,12 +81,12 @@ if [[ -n "$SETUP_MATLAB" && -d /usr/local/software/matlab && -n "$MATLAB_LICENSE
 	fi
 	export LM_LICENSE_FILE="$MATLAB_LICENSE_PORT@$MATLAB_LICENSE_SERVER"
 	grep LM_LICENSE_FILE ~/.bashrc >& /dev/null || echo "export LM_LICENSE_FILE=$MATLAB_LICENSE_PORT@$MATLAB_LICENSE_SERVER" >> ~/.bashrc
-	sudo ln -s /usr/local/software/matlab/bin/matlab /usr/local/bin/matlab
+	sudo ln -s "$MATLAB_SOFTWARE_DIR/bin/matlab" /usr/local/bin/matlab
 	pip install matlab_kernel
-	sed -i -r "s|(import __version__)|\1\nos.environ['LM_LICENSE_FILE'] = \"$MATLAB_LICENSE_PORT@$MATLAB_LICENSE_SERVER\"\n|" /opt/conda/lib/python3.8/site-packages/matlab_kernel/kernel.py
+	sed -i -r "s|(import __version__)|\1\nos.environ['LM_LICENSE_FILE'] = \"$MATLAB_LICENSE_PORT@$MATLAB_LICENSE_SERVER\"\n|" /opt/conda/lib/python*/site-packages/matlab_kernel/kernel.py
 	#sudo /opt/conda/bin/python -m matlab_kernel install
-	cd /usr/local/software/matlab/extern/engines/python
-	sudo /opt/conda/bin/python setup.py install
+	cd "$MATLAB_SOFTWARE_DIR/extern/engines/python"
+	sudo "$PYTHON" setup.py install
 	# Two kernels are installed: matlab and matlab_connect. Don't see why we need more than one way to do the same...
 	jupyter kernelspec remove -y matlab_connect
 fi
