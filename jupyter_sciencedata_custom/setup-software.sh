@@ -35,14 +35,14 @@ if [[ -n "$SETUP_MATHEMATICA" && -d "$MATHEMATICA_SOFTWARE_DIR" ]]; then
 	# Patch Mathematica and WolframKernel
 	for file in WolframKernel Mathematica; do
 		grep OVERRIDE_USER "$MATHEMATICA_SOFTWARE_DIR/Executables/$file" >& /dev/null || \
-		sed -E -i.orig "s/^(#  Copyright .*)$/\1\nuser_domain=\`echo \$SD_UID | sed -E 's|^\([^@]+\)@\([^@]+\)$|\\\2|'\`\nuser_name=\`echo \$SD_UID | sed -E 's|^\([^@]+\)@\([^@]+\)$|\\\1|'\`\nexport LD_PRELOAD=\/usr\/local\/software\/extra\/getpwuid_modify.so\nexport OVERRIDE_USER=$user_name/" "$MATHEMATICA_SOFTWARE_DIR/Executables/$file"
+		sed -E -i.orig "s/^(#  Copyright .*)$/\1\nuser_domain=\`echo \$SD_UID | sed -E 's|^\([^@]+\)@\([^@]+\)$|\\\2|'\`\nuser_name=\`echo \$SD_UID | sed -E 's|^\([^@]+\)@\([^@]+\)$|\\\1|'\`\nexport LD_PRELOAD=$EXTRA_SOFTWARE_DIR/getpwuid_modify.so\n. \$HOME/.bashrc\ntest -z \"\$OVERRIDE_USER\" && export OVERRIDE_USER=\$user_name/" "$MATHEMATICA_SOFTWARE_DIR/Executables/$file"
 	done
 
 	# Symlink wolframscript
 	sudo ln -s "$MATHEMATICA_SOFTWARE_DIR/Executables/wolframscript" /usr/bin/wolframscript
 	sudo chown -R sciencedata "$WOLFRAM_JUPYTER_DIR"
 	if [[ -n "$MMA_LICENSE_SERVER" ]]; then
-		# First check if we'r an allowed test user
+		# First check if we're an allowed test user
 		user_line=`grep -E "^$SD_UID:" $USER_MAPPING`
 		user_name=`echo $user_line | awk -F : '{print $2}'`
 		#  Check if we're a DTU user
@@ -60,7 +60,7 @@ if [[ -n "$SETUP_MATHEMATICA" && -d "$MATHEMATICA_SOFTWARE_DIR" ]]; then
 		export LD_PRELOAD="$EXTRA_SOFTWARE_DIR/getpwuid_modify.so"
 		echo "export OVERRIDE_USER=$user_name" >> ~/.bashrc
 		echo "export LD_PRELOAD=\"$EXTRA_SOFTWARE_DIR/getpwuid_modify.so\"" >> ~/.bashrc
-		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=$MATHEMATICA_SOFTWARE_DIR/Executables/WolframKernel
+		"$MATHEMATICA_SOFTWARE_DIR/Executables/wolframscript" -configure WOLFRAMSCRIPT_KERNELPATH=$MATHEMATICA_SOFTWARE_DIR/Executables/WolframKernel
 		# This may take a long time (it's apparently running some license unprotect stuff with Wolfram HQ)
 		"$WOLFRAM_JUPYTER_DIR/configure-jupyter.wls" add
 	elif [[ -n "$MMA_MATHPASS" ]]; then
