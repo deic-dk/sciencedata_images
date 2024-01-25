@@ -35,7 +35,7 @@ if [[ -n "$SETUP_MATHEMATICA" && -d "$MATHEMATICA_SOFTWARE_DIR" ]]; then
 	# Patch Mathematica and WolframKernel
 	for file in WolframKernel Mathematica; do
 		grep OVERRIDE_USER "$MATHEMATICA_SOFTWARE_DIR/Executables/$file" >& /dev/null || \
-		sed -E -i.orig "s/^(#  Copyright .*)$/\1\nuser_domain=\`echo \$SD_UID | sed -E 's|^\([^@]+\)@\([^@]+\)$|\\\2|'\`\nuser_name=\`echo \$SD_UID | sed -E 's|^\([^@]+\)@\([^@]+\)$|\\\1|'\`\nexport LD_PRELOAD=$EXTRA_SOFTWARE_DIR/getpwuid_modify.so\n. \$HOME/.bashrc\ntest -z \"\$OVERRIDE_USER\" && export OVERRIDE_USER=\$user_name/" "$MATHEMATICA_SOFTWARE_DIR/Executables/$file"
+		sed -E -i.orig "s/^(#  Copyright .*)$/\1\nuser_domain=\`echo \$SD_UID | sed -E 's|^\([^@]+\)@\([^@]+\)$|\\\2|'\`\nuser_name=\`echo \$SD_UID | sed -E 's|^\([^@]+\)@\([^@]+\)$|\\\1|'\`\nuser_line=\`grep -E \"^\$SD_UID:\" $EXTRA_SOFTWARE_DIR\/user_mapping.txt\`\nexport LD_PRELOAD=$EXTRA_SOFTWARE_DIR/getpwuid_modify.so\n. \$HOME/.bashrc\ntest -n \"\$user_line\" && export OVERRIDE_USER=\`echo \$user_line | awk -F : '{print \$2}'\`\n. $HOME/.bashrc\ntest -z \"\$OVERRIDE_USER\" && export OVERRIDE_USER=\$user_name/" "$MATHEMATICA_SOFTWARE_DIR/Executables/$file"
 	done
 
 	# Symlink wolframscript
