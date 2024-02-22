@@ -1,7 +1,7 @@
 # Build command: docker build -t sciencedata/ubuntu_jammy_caddy_sciencedata .
 # Push command: docker push sciencedata/ubuntu_jammy_caddy_sciencedata
-# Run command: docker run -p 8080:80 -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key sciencedata/ubuntu_focal_caddy_sciencedata
-# Run command: docker run -p 8080:80 -p 4022:22 -e SSH_PUBLIC_KEY="`cat ~/.ssh/id_rsa.pub`" sciencedata/ubuntu_focal_caddy_sciencedata
+# Run command: docker run -p 8080:80 -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key sciencedata/ubuntu_jammy_caddy_sciencedata
+# Run command: docker run -p 8080:80 -p 4022:22 -e SSH_PUBLIC_KEY="`cat ~/.ssh/id_rsa.pub`" sciencedata/ubuntu_jammy_caddy_sciencedata
 
 FROM ubuntu:22.04
 MAINTAINER Frederik Orellana "https://github.com/deltafunction"
