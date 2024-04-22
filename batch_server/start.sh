@@ -1,9 +1,13 @@
 #!/bin/bash
 
-USER_DN="/O=kube.sciencedata.dk/CN=$SD_UID"
-USER_PASSWORD="secret"
+# We'll allow this local user to submit and pick up jobs
+LOCAL_USER_DN="/CN=$SD_UID/O=kube.sciencedata.dk"
+LOCAL_USER_PASSWORD="secret"
+# We will also allow using the ScienceData cert/key to submit and pick up jobs
+USER_SUBJECT="O=sciencedata.dk,CN=$SD_UID"
 SPOOL_DIR="/var/spool/gridfactory"
 DATA_DIR="/var/www/grid/data"
+VO_FILE="$DATA_DIR/vos/default.txt"
 SSL_HOST_CERT="/var/www/grid/hostcert.pem"
 SSL_HOST_KEY="/var/www/grid/hostkey.pem"
 SSL_HOST_KEY_UNENC="/var/www/grid/hostkey_unenc.pem"
@@ -128,7 +132,7 @@ cp -f "sciencedata.pem" $MY_CA_CERTS/$sciencedata_ca_cert
 cd
 # Create test certificate request
 mkdir -p $MY_CERT_PATH
-openssl req -new -out $MY_CERT_PATH/userreq.pem -newkey rsa:4096 -keyout $MY_CERT_PATH/userkey.pem -subj "$USER_DN" -passout pass:$USER_PASSWORD
+openssl req -new -out $MY_CERT_PATH/userreq.pem -newkey rsa:4096 -keyout $MY_CERT_PATH/userkey.pem -subj "$LOCAL_USER_DN" -passout pass:$LOCAL_USER_PASSWORD
 # Sign it with the hostcert generated above
 RANDFILE=/tmp/.random openssl x509 -req -in $MY_CERT_PATH/userreq.pem -CA "$SSL_HOST_CERT" -CAkey "$SSL_HOST_KEY_UNENC" -CAcreateserial -out $MY_CERT_PATH/usercert.pem -days $TEST_CERT_DAYS -sha256
 
@@ -165,7 +169,7 @@ fi
 HOST_SUBJECT=`openssl x509 -in "$SSL_HOST_CERT" -subject -noout | sed -E 's|^subject= *||'`
 echo "Setting GACL permissions on $DATA_DIR: and $SPOOL_DIR: \
 allowing all to read and $HOST_SUBJECT to write/submit/pickup jobs. To allow others, please edit \
-$DATA_DIR/vos/default.txt and/or $SPOOL_DIR/.gacl. Notice that url can be an http or https URL. \
+$VO_FILE and/or $SPOOL_DIR/.gacl. Notice that url can be an http or https URL. \
 Use https://$MY_HOSTNAME/vos/default.txt from other hosts."
 echo "<gacl>
   <entry>
@@ -174,7 +178,7 @@ echo "<gacl>
   </entry>
   <entry>
     <dn-list>
-      <url>file://$DATA_DIR/vos/default.txt</url>
+      <url>file://$VO_FILE</url>
     </dn-list>
     <allow><read/><list/><write/><admin/></allow>
   </entry>
@@ -187,12 +191,15 @@ configureVO(){
 cd
 # NOTICE: GACL parsing only works for subjects with no spaces before/after commas and equal signs
 HOST_SUBJECT=`openssl x509 -in "$SSL_HOST_CERT" -subject -noout | sed -E 's|^subject= *||' | sed 's| = |=|g' | sed 's|, |,|g'`
-USER_SUBJECT=`openssl x509 -in $MY_CERT_PATH/usercert.pem -subject -noout | sed -E 's|^subject= *||' | sed 's| = |=|g' | sed 's|, |,|g'`
-if ! grep "$USER_SUBJECT" $DATA_DIR/vos/default.txt >& /dev/null; then
-  echo $USER_SUBJECT >> $DATA_DIR/vos/default.txt
+LOCAL_USER_SUBJECT=`openssl x509 -in $MY_CERT_PATH/usercert.pem -subject -noout | sed -E 's|^subject= *||' | sed 's| = |=|g' | sed 's|, |,|g'`
+if ! grep "$LOCAL_USER_SUBJECT" "$VO_FILE" >& /dev/null; then
+  echo $LOCAL_USER_SUBJECT >> "$VO_FILE"
 fi
-if ! grep "$HOST_SUBJECT" $DATA_DIR/vos/default.txt >& /dev/null; then
-  echo $HOST_SUBJECT >> $DATA_DIR/vos/default.txt
+if ! grep "$USER_SUBJECT" "$VO_FILE" >& /dev/null; then
+  echo $USER_SUBJECT >> "$VO_FILE"
+fi
+if ! grep "$HOST_SUBJECT" "$VO_FILE" >& /dev/null; then
+  echo $HOST_SUBJECT >> "$VO_FILE"
 fi
 }
 
