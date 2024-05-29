@@ -20,8 +20,12 @@ if [[ -n "$USERNAME" && "$USERNAME" != "root" ]]; then
 	chown -R $USERNAME:$USERNAME /home/$USERNAME/.ssh
 	echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USERNAME && chmod 0440 /etc/sudoers.d/$USERNAME
 	[[ -n $SETUP_SCRIPT  && -f "$SETUP_SCRIPT" ]] && echo ". \"$SETUP_SCRIPT\"" >> /home/$USERNAME/.bashrc
+	env | grep SD_UID >> /home/$USERNAME/.bashrc
+	env | grep HOME_SERVER >> /home/$USERNAME/.bashrc
 else
 	[[ -n $SETUP_SCRIPT  && -f "$SETUP_SCRIPT" ]] && echo ". \"$SETUP_SCRIPT\"" >> /root/.bashrc
+	env | grep SD_UID >> /root/.bashrc
+	env | grep HOME_SERVER >> /root/.bashrc
 fi
 
 #/etc/init.d/php* start

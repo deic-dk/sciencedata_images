@@ -59,9 +59,6 @@ RUN dpkg --add-architecture i386
 RUN dpkg --force-all -i *.deb
 
 ADD start.sh /usr/local/sbin/start.sh
-ADD configure.sh /usr/local/sbin/configure.sh
-RUN chmod +x /usr/local/sbin/start.sh /usr/local/sbin/configure.sh
-RUN /usr/local/sbin/configure.sh
 
 # Configure ssh access
 RUN echo "alias ls='ls --color=auto'" >> .bashrc &&\
