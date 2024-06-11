@@ -26,20 +26,27 @@ cd
 
 env | grep SD_UID >> .bashrc
 env | grep HOME_SERVER >> .bashrc
+export SD_UID
+export HOME_SERVER
 
-# Get personal certficate/key from sciencedata
-cat << EOF >> .bashrc
-if [ ! -e $HOME/.gridfactory/userkey.pem ]; then
-mkdir $HOME/.gridfactory
-curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getcert | jq -r .data.certificate > $HOME/.gridfactory/usercert.pem
-curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $HOME/.gridfactory/userkey_unenc.pem
-# Encrypt the key
-openssl rsa -des3 -in .gridfactory/userkey_unenc.pem -passin "pass:" -passout "pass:grid" > $HOME/.gridfactory/userkey.pem
+# Parse $PEERS - which will be of the form hostname1:ip1,hostname2:ip2,...
+
+GRIDFACTORY_SERVERS=""
+GRIDFACTORY_SERVER_IPS=""
+if [ -n $PEERS ]; then
+  GRIDFACTORY_SERVERS=`echo $PEERS | sed -E 's| *, *| |g' | sed -E 's| *: *([0-9.]+)|:\1|g' | sed -E 's|:[^ ]*||g'`
+  GRIDFACTORY_SERVER_IPS=`echo $PEERS | sed -E 's| *, *| |g' | sed -E 's| *: *([0-9.]+)|:\1|g' | sed -E 's|: |:- |g' | sed -E 's|[^ ]+:||g'`
 fi
-EOF
 
-GRID_USER=www-data MY_HOSTNAME=`hostname` LOCAL_USER_DN="/CN=$SD_UID/O=sciencedata.dk" \
-KEY_PASSWORD=grid LOCAL_USER_KEY_PASSWORD=grid MY_DB_USERNAME=root NO_DB_PASSWORD=yes \
-/usr/share/gridfactory/configure_services.sh -y
+export GRIDFACTORY_SERVERS
+export GRIDFACTORY_SERVER_IPS
+
+env | grep GRIDFACTORY >> .bashrc
+
+# Wait 30 seconds for sciencedata silo to refresh its cache of pod IPs (lib_chooser.php: $IPS_TTL_SECONDS = 30)
+sleep 30
+
+HOME_SERVER=$HOME_SERVER GRIDFACTORY_USER=www-data KEY_PASSWORD=grid GRIDFACTORY_SERVERS=$GRIDFACTORY_SERVERS  \
+GRIDFACTORY_SERVER_IPS=$GRIDFACTORY_SERVER_IPS /usr/share/gridfactory/gridworker/configure_worker_node.sh -y
 
 runSSH

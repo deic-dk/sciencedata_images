@@ -1,14 +1,14 @@
-# Build command: docker build -t sciencedata/batch_server .
-# Push command: docker push sciencedata/batch_server
-# Run command: docker run -p 8443:443 -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key sciencedata/batch_server
-# Run command: docker run -p 8443:443 -p 4022:22 -e SSH_PUBLIC_KEY="`cat ~/.ssh/id_rsa.pub`" sciencedata/batch_server
+# Build command: docker build -t sciencedata/batch_worker .
+# Push command: docker push sciencedata/batch_worker
+# Run command: docker run -p 8443:443 -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key sciencedata/batch_worker
+# Run command: docker run -p 8443:443 -p 4022:22 -e SSH_PUBLIC_KEY="`cat ~/.ssh/id_rsa.pub`" sciencedata/batch_worker
 
 FROM ubuntu:22.04
 MAINTAINER Frederik Orellana "https://github.com/deltafunction"
 
 LABEL vendor="sciencedata.dk"
 LABEL version="1.0"
-LABEL description="Ubuntu Jammy with GridFactory batch server for deployment on sciencedata.dk"
+LABEL description="Ubuntu Jammy with GridFactory batch worker for deployment on sciencedata.dk"
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install ca-certificates
 
@@ -27,9 +27,8 @@ RUN apt update --fix-missing
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang duck cron \
-apt-transport-https wget jq nfs-common php-cli dropbear openssh-sftp-server iputils-ping \
-traceroute php-yaml default-jre \
-curl apache2 mysql-server libaprutil1-dbd-mysql libxml2-utils
+apt-transport-https wget jq dropbear openssh-sftp-server iputils-ping \
+traceroute php-yaml default-jre curl libxml2-utils
 
 # "unminimize" script provided by ubuntu:22.04 container restores expected shell features like installing
 # man pages. The script itself is interactive, so this a modified version that runs without interaction
@@ -49,11 +48,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
 RUN echo "www ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/www && chmod 0440 /etc/sudoers.d/www
 
 # GridFactory debs
-
-RUN curl -LO https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/mod_gacl_ubuntu_0_9_2.deb
-RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/mod_gridfactory_ubuntu_0_1_7.deb
-RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridfactory_server_linux_0_1_5.deb
 RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridfactory_cli_linux_0_1_5.deb
+RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridworker_daemon_linux_0_1_5.deb
 
 #RUN dpkg --add-architecture i386
 RUN dpkg --force-all -i *.deb
