@@ -28,6 +28,8 @@ env | grep SD_UID >> .bashrc
 env | grep HOME_SERVER >> .bashrc
 env | grep ONLY_FROM >> .bashrc
 env | grep SSL_DN_HEADER >> .bashrc
+env | grep TRUSTED_VOS >> .bashrc
+env | grep RTE_URLS >> .bashrc
 
 # Get personal certficate/key from sciencedata
 cat << EOF >> .bashrc
@@ -40,13 +42,13 @@ openssl rsa -des3 -in .gridfactory/userkey_unenc.pem -passin "pass:" -passout "p
 fi
 EOF
 
-GRID_USER=www-data MY_HOSTNAME=`hostname` LOCAL_USER_DN="/CN=$SD_UID/O=sciencedata.dk" \
-KEY_PASSWORD=grid LOCAL_USER_KEY_PASSWORD=grid MY_DB_USERNAME=root NO_DB_PASSWORD=yes \
-/usr/share/gridfactory/configure_services.sh -y
-
 if [[ -n "$ONLY_FROM" && -n "$SSL_DN_HEADER" ]]; then
   sed -E -i "s|#DNHeader.*|DNHeader $SSL_DN_HEADER|" /etc/apache2/sites-available/grid.conf
   sed -E -i "s|#OnlyFrom.*|OnlyFrom $ONLY_FROM|" /etc/apache2/sites-available/grid.conf
 fi
+
+GRID_USER=www-data MY_HOSTNAME=`hostname` LOCAL_USER_DN="/CN=$SD_UID/O=sciencedata.dk" \
+KEY_PASSWORD=grid LOCAL_USER_KEY_PASSWORD=grid MY_DB_USERNAME=root NO_DB_PASSWORD=yes \
+/usr/share/gridfactory/configure_services.sh -y
 
 runSSH
