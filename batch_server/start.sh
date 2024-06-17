@@ -42,13 +42,23 @@ openssl rsa -des3 -in .gridfactory/userkey_unenc.pem -passin "pass:" -passout "p
 fi
 EOF
 
+if [[ -n "$RTE_URLS" ]]; then
+  sed -E -i "s|RTE_URLS *= *$|RTE_URLS = $RTE_URLS|" /etc/gridfactory.conf
+fi
+
+if [[ -n "$TRUSTED_VOS" ]]; then
+  sed -E -i "s|MY_VOS *= *(.*)$|MY_VOS = \1 $TRUSTED_VOS|" /etc/gridfactory.conf
+fi
+
+TRUSTED_VOS="$TRUSTED_VOS" GRID_USER=www-data MY_HOSTNAME=`hostname` LOCAL_USER_DN="/CN=$SD_UID/O=sciencedata.dk" \
+KEY_PASSWORD=grid LOCAL_USER_KEY_PASSWORD=grid MY_DB_USERNAME=root NO_DB_PASSWORD=yes \
+/usr/share/gridfactory/configure_services.sh -y
+
 if [[ -n "$ONLY_FROM" && -n "$SSL_DN_HEADER" ]]; then
   sed -E -i "s|#DNHeader.*|DNHeader $SSL_DN_HEADER|" /etc/apache2/sites-available/grid.conf
   sed -E -i "s|#OnlyFrom.*|OnlyFrom $ONLY_FROM|" /etc/apache2/sites-available/grid.conf
 fi
 
-GRID_USER=www-data MY_HOSTNAME=`hostname` LOCAL_USER_DN="/CN=$SD_UID/O=sciencedata.dk" \
-KEY_PASSWORD=grid LOCAL_USER_KEY_PASSWORD=grid MY_DB_USERNAME=root NO_DB_PASSWORD=yes \
-/usr/share/gridfactory/configure_services.sh -y
+service apache2 restart
 
 runSSH
