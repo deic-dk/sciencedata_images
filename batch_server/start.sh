@@ -62,8 +62,12 @@ if [[ -n "$TRUSTED_VOS" ]]; then
   sed -E -i "s|MY_VOS *= *(.*)$|MY_VOS = \1 $TRUSTED_VOS|" /etc/gridfactory.conf
 fi
 
+# Set the mysql password
+echo "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'grid';" | \
+mysql -uroot
+
 TRUSTED_VOS="$TRUSTED_VOS" GRID_USER=www-data MY_HOSTNAME=`hostname` LOCAL_USER_DN="/CN=$SD_UID/O=sciencedata.dk" \
-KEY_PASSWORD=grid LOCAL_USER_KEY_PASSWORD=grid MY_DB_USERNAME=root NO_DB_PASSWORD=yes \
+KEY_PASSWORD=grid LOCAL_USER_KEY_PASSWORD=grid MY_DB_USERNAME=root MY_DB_PASSWORD=grid NO_DB_PASSWORD=no \
 /usr/share/gridfactory/configure_services.sh -y
 
 if [[ -n "$ONLY_FROM" && -n "$SSL_DN_HEADER" ]]; then
