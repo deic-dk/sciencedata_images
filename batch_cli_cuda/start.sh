@@ -13,18 +13,6 @@ fi
 
 # Resolve sciencedata to the 10.2.0.0/24 address of the silo of the user
 [[ -n $HOME_SERVER ]] && echo "$HOME_SERVER	sciencedata" >> /etc/hosts
-# Route traffic to ScienceData over the internal network.
-# Resolve all fully qualified silo names to local addresses - this in order to allow proper SSL handshake and client certificate auth
-echo "10.2.0.13 sciencedata.dk" >> /etc/hosts
-echo "10.2.0.14 silo1.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.15 silo2.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.16 silo3.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.17 silo4.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.18 silo5.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.19 silo6.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.20 silo7.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.21 silo8.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.22 silo9.sciencedata.dk" >> /etc/hosts
 [[ -n $HOME_SERVER ]] && echo "*/5 * * * * root grep sciencedata /etc/hosts || echo \"$HOME_SERVER	sciencedata\" >> /etc/hosts" > /etc/cron.d/sciencedata_hosts
 [[ -n $PUBLIC_HOME_SERVER ]] && echo "$PUBLIC_HOME_SERVER" >> /tmp/public_home_server
 [[ -n $SETUP_SCRIPT  && -f "$SETUP_SCRIPT" ]] && . "$SETUP_SCRIPT"
@@ -55,7 +43,10 @@ export GRIDFACTORY_SERVER_IPS
 
 env | grep GRIDFACTORY >> .bashrc
 
-HOME_SERVER=$HOME_SERVER GRIDFACTORY_USER=root KEY_PASSWORD=grid GRIDFACTORY_SERVERS=$GRIDFACTORY_SERVERS  \
-GRIDFACTORY_SERVER_IPS=$GRIDFACTORY_SERVER_IPS /usr/share/gridfactory/gridworker/configure_worker_node.sh -y
+# Wait 30 seconds for sciencedata silo to refresh its cache of pod IPs (lib_chooser.php: $IPS_TTL_SECONDS = 30)
+sleep 30
+
+HOME_SERVER=$HOME_SERVER KEY_PASSWORD=grid GRIDFACTORY_SERVERS=$GRIDFACTORY_SERVERS  \
+GRIDFACTORY_SERVER_IPS=$GRIDFACTORY_SERVER_IPS /usr/share/gridfactory/cli/configure_cli.sh -y
 
 runSSH
