@@ -1,13 +1,13 @@
 # Copyright ScienceData team
 # Distributed under the terms of the Modified BSD License.
 
-# Build command: docker build -t sciencedata/jupyter_sciencedata_custom:1.1 .
-# Push command: docker push sciencedata/jupyter_sciencedata_custom:1.1
+# Build command: docker build -t sciencedata/jupyter_sciencedata_custom:1.2 .
+# Push command: docker push sciencedata/jupyter_sciencedata_custom:1.2
 # Run command: docker run -p 8080:80 -p 4022:22 sciencedata/jupyter_sciencedata_custom
 
 FROM sciencedata/jupyter_sciencedata
 
-LABEL maintainer="ScienceData Project <cloud@deic.dk>"
+LABEL maintainer="ScienceData Project <support@sciencedata.dk>"
 ARG NB_USER="sciencedata"
 ARG NB_UID="1000"
 ARG NB_GID="100"
@@ -29,7 +29,8 @@ USER $NB_UID
 RUN pip install pycurl webdavclient3
 ADD https://api.github.com/repos/deic-dk/jupyter_sciencedata/git/refs/heads/main version.json
 RUN sudo chown "${NB_USER}":users version.json
-RUN git clone -b main https://github.com/deic-dk/jupyter_sciencedata.git
+#RUN git clone -b main https://github.com/deic-dk/jupyter_sciencedata.git
+RUN git clone --depth 1 --branch 1.0 https://github.com/deic-dk/jupyter_sciencedata.git
 RUN pip install jupyter_sciencedata/
 
 # TOC extension

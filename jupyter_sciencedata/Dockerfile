@@ -14,7 +14,7 @@ ARG ROOT_CONTAINER=ubuntu:focal-20210119@sha256:3093096ee188f8ff4531949b8f6115af
 ARG BASE_CONTAINER=$ROOT_CONTAINER
 FROM $BASE_CONTAINER
 
-LABEL maintainer="ScienceData Project <cloud@deic.dk>"
+LABEL maintainer="ScienceData Project <support@sciencedata.dk>"
 ARG NB_USER="sciencedata"
 ARG NB_UID="1000"
 ARG NB_GID="100"
@@ -145,7 +145,10 @@ RUN wget --quiet "https://github.com/conda-forge/miniforge/releases/download/${m
 #    'jupyterlab=3.5.3' && \
 RUN conda install --quiet --yes \
     'notebook' \
-    'jupyter_server=2.*' \
+#    'jupyter_server=2.*' \ # 2.11 introduces extra md5 parameter to get(),
+                            # not supported by ther version of jupyter_sciencedata
+                            # used by the downstream jupyter_sciencedata_custom
+    'jupyter_server=2.6.*' \
     'nbclassic' \
     'jupyterlab' && \
     conda clean --all -f -y && \
