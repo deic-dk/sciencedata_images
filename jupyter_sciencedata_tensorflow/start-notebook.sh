@@ -3,7 +3,7 @@
 set -e
 set -m
 
-ldconfig
+sudo ldconfig
 
 export HOME_SERVER
 
@@ -14,6 +14,12 @@ fi
 
 root_dir='/'
 preferred_dir='/'
+
+sudo bash<<END
+# Resolve sciencedata to the 10.2.0.0/24 address of the silo of the user
+[[ -n "$HOME_SERVER" ]] && ( grep sciencedata /etc/hosts >& /dev/null || echo "$HOME_SERVER sciencedata" >> /etc/hosts )
+[[ -n "$HOME_SERVER" ]] && echo "*/5 * * * * root grep sciencedata /etc/hosts || echo \"$HOME_SERVER  sciencedata\" >> /etc/hosts" > /etc/cron.d/sciencedata_hosts
+END
 
 # A $FILE ending with a slash we use as notebook-dir.
 if [[ -n "$FILE" && $FILE =~ .*/$ ]]; then
