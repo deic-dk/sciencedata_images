@@ -116,7 +116,8 @@ RUN bash -c "rm -f /usr/lib/x86_64-linux-gnu/libcudnn_static_v*.a"
 #RUN ldconfig
 
 #RUN pip install --no-cache-dir tf-nightly
-RUN pip install --no-cache-dir tensorrt tensorflow[and-cuda]
+#RUN pip install --no-cache-dir tensorrt tensorflow[and-cuda]
+RUN pip install --no-cache-dir tensorrt tensorflow==2.15.0 
 #RUN apt install tensorrt nvidia-tensorrt-dev python3-libnvinfer-dev
 
 FROM base as jupyter
@@ -144,7 +145,9 @@ USER $NB_UID
 ENV PATH=$PATH:/home/$NB_USER/.local/bin
 RUN echo "PATH=$PATH:/home/$NB_USER/.local/bin" >> /home/$NB_USER/.bashrc
 
-RUN python3 -m pip install --no-cache-dir jupyter matplotlib jupyter_http_over_ws -U
+RUN pip install --no-cache-dir jupyter matplotlib jupyter_http_over_ws -U
+RUN pip install --no-cache-dir --upgrade notebook==6.4.12
+RUN pip install --no-cache-dir jupyter-tensorboard
 RUN jupyter labextension enable jupyter_http_over_ws
 RUN python3 -m ipykernel.kernelspec
 
