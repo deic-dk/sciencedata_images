@@ -25,7 +25,7 @@
 
 
 FROM nvidia/cuda:12.3.0-base-ubuntu22.04 as base
-ENV DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND=noninteractiveFILE
 ENV LANG C.UTF-8
 
 LABEL maintainer="ScienceData Project <support@sciencedata.dk>"
@@ -33,7 +33,7 @@ ARG NB_USER="sciencedata"
 ARG NB_UID="1000"
 ARG NB_GID="100"
 
-ARG PYTHON_VERSION=python3.11
+ARG PYTHON_VERSION=python3.10
 #ARG PYTHON_VERSION=default
 
 # Configure environment
@@ -60,24 +60,25 @@ RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86
 RUN dpkg -i cuda-keyring_1.1-1_all.deb
 RUN apt update
 # All required CUDA packages
-RUN apt install -y \
-cuda-command-line-tools-12-3 \
-cuda-cudart-dev-12-3 \
-cuda-nvcc-12-3 \
-cuda-cupti-12-3 \
-cuda-nvprune-12-3 \
-cuda-libraries-12-3 \
-cuda-nvrtc-12-3 \
-libcufft-12-3 \
-libcurand-12-3 \
-libcusolver-12-3 \
-libcusparse-12-3 \
-libcublas-12-3
+#RUN apt install -y \
+#cuda-command-line-tools-12-3 \
+#cuda-cudart-dev-12-3 \
+#cuda-nvcc-12-3 \
+#cuda-cupti-12-3 \
+#cuda-nvprune-12-3 \
+#cuda-libraries-12-3 \
+#cuda-nvrtc-12-3 \
+#libcufft-12-3 \
+#libcurand-12-3 \
+#libcusolver-12-3 \
+#libcusparse-12-3 \
+#libcublas-12-3
 # CuDNN: https://docs.nvidia.com/deeplearning/sdk/cudnn-install/index.html#ubuntu-network-installation
-RUN apt install -y \
-libcudnn8=8.9.6.50-1+cuda12.2 \
-libnvinfer-plugin8=8.6.1.6-1+cuda12.0 \
-libnvinfer8=8.6.1.6-1+cuda12.0
+#RUN apt install -y \
+#libcudnn8=8.9.6.50-1+cuda12.2 \
+#libnvinfer-plugin8=8.6.1.6-1+cuda12.0 \
+#libnvinfer8=8.6.1.6-1+cuda12.0
+#RUN apt install -y nvidia-cuda-toolkit nvidia-utils-555
 # Other packages
 RUN apt install -y \
 build-essential \
@@ -97,7 +98,7 @@ RUN apt update
 
 RUN apt install -y $PYTHON_VERSION $PYTHON_VERSION-venv $PYTHON_VERSION-distutils $PYTHON_VERSION-dev
 RUN ln -sf /usr/bin/$PYTHON_VERSION /usr/bin/python3
-RUN ln -sf /usr/bin/$VERSION /usr/bin/python
+RUN ln -sf /usr/bin/$PYTHON_VERSION /usr/bin/python
 
 RUN bash -c "if [[ ! -f /usr/local/include/$PYTHON_VERSION ]]; then ln -sf /usr/include/$PYTHON_VERSION /usr/local/include/$PYTHON_VERSION; fi"
 
@@ -110,9 +111,13 @@ RUN bash -c "rm -f /usr/lib/x86_64-linux-gnu/libcudnn_static_v*.a"
 
 # Link the libcuda stub to the location where tensorflow is searching for it and
 # reconfigure dynamic linker run-time bindings
-RUN bash -c "ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1"
-RUN bash -c "echo /usr/local/cuda/lib64/stubs > /etc/ld.so.conf.d/z-cuda-stubs.conf"
-RUN ldconfig
+#RUN bash -c "ln -s /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1"
+#RUN bash -c "echo /usr/local/cuda/lib64/stubs > /etc/ld.so.conf.d/z-cuda-stubs.conf"
+#RUN ldconfig
+
+#RUN pip install --no-cache-dir tf-nightly
+RUN pip install --no-cache-dir tensorrt tensorflow[and-cuda]
+#RUN apt install tensorrt nvidia-tensorrt-dev python3-libnvinfer-dev
 
 FROM base as jupyter
 
@@ -143,8 +148,6 @@ RUN python3 -m pip install --no-cache-dir jupyter matplotlib jupyter_http_over_w
 RUN jupyter labextension enable jupyter_http_over_ws
 RUN python3 -m ipykernel.kernelspec
 
-RUN pip install --no-cache-dir tf-nightly
-
 # Keep notebooks in sciencedata homedir
 RUN pip install pycurl webdavclient3
 ADD https://api.github.com/repos/deic-dk/jupyter_sciencedata/git/refs/heads/main version.json
@@ -165,7 +168,8 @@ echo "c.NotebookApp.ip = '0.0.0.0'" >> /etc/jupyter/jupyter_notebook_config.py
 EXPOSE 8888
 
 ENV PATH=$PATH:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/python3.10/dist-packages/nvidia/cudnn:/usr/local/cuda/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+ENV CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES
 
 COPY start-notebook.sh /usr/local/sbin/start-notebook.sh
 CMD /usr/local/sbin/start-notebook.sh
