@@ -163,10 +163,10 @@ RUN cp jupyter_sciencedata/custom/* /usr/lib/$PYTHON_VERSION/site-packages/noteb
 RUN cp jupyter_sciencedata/custom/* /usr/lib/$PYTHON_VERSION/site-packages/nbclassic/static/custom/ || echo "No nbclassic/static"
 
 # Keep notebooks in sciencedata homedir ('/files')
-RUN echo "from jupyter_sciencedata import JupyterScienceData" >> /etc/jupyter/jupyter_notebook_config.py &&\
-echo "c.NotebookApp.contents_manager_class = 'jupyter_sciencedata.JupyterScienceData'" >> /etc/jupyter/jupyter_notebook_config.py &&\
-echo "c.NotebookApp.allow_origin = '*'" >> /etc/jupyter/jupyter_notebook_config.py &&\
-echo "c.NotebookApp.ip = '0.0.0.0'" >> /etc/jupyter/jupyter_notebook_config.py
+RUN echo "from jupyter_sciencedata import JupyterScienceData" >> /etc/jupyter/jupyter_server_config.py &&\
+echo "c.NotebookApp.contents_manager_class = 'jupyter_sciencedata.JupyterScienceData'" >> /etc/jupyter/jupyter_server_config.py &&\
+echo "c.NotebookApp.allow_origin = '*'" >> /etc/jupyter/jupyter_server_config.py &&\
+echo "c.NotebookApp.ip = '0.0.0.0'" >> /etc/jupyter/jupyter_server_config.py
 
 EXPOSE 8888
 
