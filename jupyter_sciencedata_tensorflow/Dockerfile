@@ -118,7 +118,8 @@ RUN bash -c "rm -f /usr/lib/x86_64-linux-gnu/libcudnn_static_v*.a"
 #RUN pip install --no-cache-dir tf-nightly
 #RUN pip install --no-cache-dir tensorrt tensorflow[and-cuda]
 RUN pip install --no-cache-dir tensorrt tensorflow[and-cuda]
-RUN pip install --no-cache-dir --upgrade tensorflow==2.15.0 
+#RUN pip install --no-cache-dir --upgrade tensorflow[and-cuda]==2.15.0.post1
+RUN pip install --no-cache-dir tensorrt tensorflow[and-cuda]==2.15.0.post1
 #RUN apt install tensorrt nvidia-tensorrt-dev python3-libnvinfer-dev
 
 FROM base as jupyter
