@@ -48,6 +48,7 @@ cd
 sudo mkdir /usr/etc 
 sudo chown sciencedata /usr/etc/
 jupyter labextension disable "@jupyterlab/apputils-extension:announcements"
+export PATH
 
 (jupyter lab --no-browser --notebook-dir="$root_dir" --allow-root --preferred-dir="$preferred_dir" --debug >& /tmp/jupyter.log)&
 
