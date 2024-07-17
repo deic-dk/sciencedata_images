@@ -37,10 +37,19 @@ else
   fi
 fi
 
+# Make a random 4 out of the 10 GPUs visible
+if [ -z "$CUDA_VISIBLE_DEVICES" ]; then
+  gpus=$(echo $(shuf -i 0-9 -n 4 | sort -n | sed "s|$|,|") | sed 's| ||g' | sed 's|,$||')
+  export CUDA_VISIBLE_DEVICES=$gpus
+fi
+
+cd
+
 sudo mkdir /usr/etc 
 sudo chown sciencedata /usr/etc/
 jupyter labextension disable "@jupyterlab/apputils-extension:announcements"
 
+export PATH
 cd
 
 (jupyter lab --no-browser --notebook-dir="$root_dir" --allow-root --preferred-dir="$preferred_dir" --debug >& /tmp/jupyter.log)&

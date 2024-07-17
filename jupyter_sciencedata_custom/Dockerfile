@@ -113,7 +113,8 @@ RUN sed -i -r "s|(\{\{super\(\)\}\})|\1\n<script src=\"/static/notebook/js/main.
 
 # Keep notebooks in sciencedata homedir ('/files')
 RUN echo "from jupyter_sciencedata import JupyterScienceData" >> /etc/jupyter/jupyter_notebook_config.py &&\
-echo "c.NotebookApp.contents_manager_class = 'jupyter_sciencedata.JupyterScienceData'" >> /etc/jupyter/jupyter_notebook_config.py
+echo "c.NotebookApp.contents_manager_class = 'jupyter_sciencedata.JupyterScienceData'" >> /etc/jupyter/jupyter_notebook_config.py &&\
+echo "c.NotebookApp.allow_origin = '*'" >> /etc/jupyter/jupyter_server_config.py
 
 RUN cp /opt/conda/etc/jupyter/jupyter_notebook_config.d/jupyter_nbextensions_configurator.json \
 /opt/conda/etc/jupyter/jupyter_server_config.d/jupyter_nbextensions_configurator.json &&\

@@ -144,7 +144,7 @@ USER $NB_UID
 ENV PATH=$PATH:/home/$NB_USER/.local/bin
 RUN echo "PATH=$PATH:/home/$NB_USER/.local/bin" >> /home/$NB_USER/.bashrc
 
-RUN python3 -m pip install --no-cache-dir jupyter matplotlib jupyter_http_over_ws -U
+RUN pip install --no-cache-dir jupyter matplotlib jupyter_http_over_ws -U
 RUN jupyter labextension enable jupyter_http_over_ws
 RUN python3 -m ipykernel.kernelspec
 
@@ -160,15 +160,15 @@ RUN cp jupyter_sciencedata/custom/* /usr/lib/$PYTHON_VERSION/site-packages/noteb
 RUN cp jupyter_sciencedata/custom/* /usr/lib/$PYTHON_VERSION/site-packages/nbclassic/static/custom/ || echo "No nbclassic/static"
 
 # Keep notebooks in sciencedata homedir ('/files')
-RUN echo "from jupyter_sciencedata import JupyterScienceData" >> /etc/jupyter/jupyter_notebook_config.py &&\
-echo "c.NotebookApp.contents_manager_class = 'jupyter_sciencedata.JupyterScienceData'" >> /etc/jupyter/jupyter_notebook_config.py &&\
-echo "c.NotebookApp.allow_origin = '*'" >> /etc/jupyter/jupyter_notebook_config.py &&\
-echo "c.NotebookApp.ip = '0.0.0.0'" >> /etc/jupyter/jupyter_notebook_config.py
+RUN echo "from jupyter_sciencedata import JupyterScienceData" >> /etc/jupyter/jupyter_server_config.py &&\
+echo "c.NotebookApp.contents_manager_class = 'jupyter_sciencedata.JupyterScienceData'" >> /etc/jupyter/jupyter_server_config.py &&\
+echo "c.NotebookApp.allow_origin = '*'" >> /etc/jupyter/jupyter_server_config.py &&\
+echo "c.NotebookApp.ip = '0.0.0.0'" >> /etc/jupyter/jupyter_server_config.py
 
 EXPOSE 8888
 
 ENV PATH=$PATH:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/python3.10/dist-packages/nvidia/cudnn:/usr/local/cuda/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/python3.10/dist-packages/nvidia/cudnn:/usr/local/cuda/lib64:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda-12.3/targets/x86_64-linux
 ENV CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES
 
 COPY start-notebook.sh /usr/local/sbin/start-notebook.sh
