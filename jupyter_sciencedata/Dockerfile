@@ -6,57 +6,34 @@
 # Push command: docker push sciencedata/jupyter_sciencedata
 # Run command: docker run -p 8080:80 -p 4022:22 sciencedata/jupyter_sciencedata
 
-# Ubuntu 20.04 (focal)
-# https://hub.docker.com/_/ubuntu/?tab=tags&name=focal
-# OS/ARCH: linux/amd64
-ARG ROOT_CONTAINER=ubuntu:focal-20210119@sha256:3093096ee188f8ff4531949b8f6115af4747ec1c58858c091c8cb4579c39cc4e
-
-ARG BASE_CONTAINER=$ROOT_CONTAINER
-FROM $BASE_CONTAINER
+FROM ubuntu:22.04
 
 LABEL maintainer="ScienceData Project <support@sciencedata.dk>"
 ARG NB_USER="sciencedata"
 ARG NB_UID="1000"
 ARG NB_GID="100"
+#ARG conda_version="4.9.2"
+ARG conda_version="24.3.0"
 
 # Fix DL4006
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 USER root
 
-# ---- Miniforge installer ----
-# Default values can be overridden at build time
-# (ARGS are in lower case to distinguish them from ENV)
-# Check https://github.com/conda-forge/miniforge/releases
-# Conda version
-ARG conda_version="4.9.2"
-# Miniforge installer patch version
-ARG miniforge_patch_number="5"
-# Miniforge installer architecture
-ARG miniforge_arch="x86_64"
-# Python implementation to use 
-# can be either Miniforge3 to use Python or Miniforge-pypy3 to use PyPy
-ARG miniforge_python="Miniforge3"
-
-# Miniforge archive to install
-ARG miniforge_version="${conda_version}-${miniforge_patch_number}"
-# Miniforge installer
-ARG miniforge_installer="${miniforge_python}-${miniforge_version}-Linux-${miniforge_arch}.sh"
-# Miniforge checksum
-ARG miniforge_checksum="49dddb3998550e40adc904dae55b0a2aeeb0bd9fc4306869cc4a600ec4b8b47c"
-
 # Install all OS dependencies for notebook server that starts but lacks all
 # features (e.g., download as all possible file formats)
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update \
- && apt-get install -yq --no-install-recommends \
+RUN apt update \
+ && apt install -yq --no-install-recommends \
     wget \
+    curl \
     ca-certificates \
+    gnupg \
     sudo \
     locales \
     fonts-liberation \
     run-one \
- && apt-get clean && rm -rf /var/lib/apt/lists/*
+ && apt clean && rm -rf /var/lib/apt/lists/*
 
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
@@ -72,8 +49,7 @@ ENV CONDA_DIR=/opt/conda \
     LANGUAGE=en_US.UTF-8
 ENV PATH=$CONDA_DIR/bin:$PATH \
     HOME=/home/$NB_USER \
-    CONDA_VERSION="${conda_version}" \
-    MINIFORGE_VERSION="${miniforge_version}"
+    CONDA_VERSION="${conda_version}"
 
 # Copy a script that we will use to correct permissions after running certain commands
 COPY fix-permissions /usr/local/bin/fix-permissions
@@ -101,31 +77,32 @@ RUN echo "auth requisite pam_deny.so" >> /etc/pam.d/su && \
 RUN echo "$NB_USER:secret" | chpasswd
 RUN echo "$NB_USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$NB_USER && chmod 0440 /etc/sudoers.d/$NB_USER
 
-USER $NB_UID
+USER $NB_USER
 ARG PYTHON_VERSION=default
 
 # Setup work directory for backward-compatibility
 RUN mkdir "/home/$NB_USER/work" && \
+    chown -R $NB_USER:$NB_GID "/home/$NB_USER" &&\
     fix-permissions "/home/$NB_USER"
 
 # Install conda as $NB_USER and check the sha256 sum provided on the download site
 WORKDIR /tmp
 
 # Prerequisites installation: conda, pip, tini
-RUN wget --quiet "https://github.com/conda-forge/miniforge/releases/download/${miniforge_version}/${miniforge_installer}" && \
-    echo "${miniforge_checksum} *${miniforge_installer}" | sha256sum --check && \
-    /bin/bash "${miniforge_installer}" -f -b -p $CONDA_DIR && \
-    rm "${miniforge_installer}" && \
+
+RUN curl -LO https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Mambaforge-24.3.0-0-Linux-x86_64.sh && chmod +x *.sh
+
+RUN ./Mambaforge-* -f -b -p $CONDA_DIR && \
     # Conda configuration see https://conda.io/projects/conda/en/latest/configuration.html
     echo "conda ${CONDA_VERSION}" >> $CONDA_DIR/conda-meta/pinned && \
     conda config --system --set auto_update_conda false && \
     conda config --system --set show_channel_urls true && \
-    if [ ! $PYTHON_VERSION = 'default' ]; then conda install --yes python=$PYTHON_VERSION; fi && \
+    if [ ! $PYTHON_VERSION = 'default' ]; then mamba install --yes python=$PYTHON_VERSION; fi && \
     conda list python | grep '^python ' | tr -s ' ' | cut -d '.' -f 1,2 | sed 's/$/.*/' >> $CONDA_DIR/conda-meta/pinned && \
-    conda install --quiet --yes \
+    mamba install --quiet --yes \
     "conda=${CONDA_VERSION}" \
     'pip' \
-    'tini=0.18.0' && \
+    'tini' && \
     conda update --all --quiet --yes && \
     conda list tini | grep tini | tr -s ' ' | cut -d ' ' -f 1,2 >> $CONDA_DIR/conda-meta/pinned && \
     conda clean --all -f -y && \
@@ -139,25 +116,18 @@ RUN wget --quiet "https://github.com/conda-forge/miniforge/releases/download/${m
 # Correct permissions
 # Do all this in a single RUN command to avoid duplicating all of the
 # files across image layers when the permissions change
-#RUN conda install --quiet --yes \
-#    'notebook=6.2.0' \
-#    'jupyterhub=1.3.0' \
-#    'jupyterlab=3.5.3' && \
-RUN conda install --quiet --yes \
-    'notebook' \
-#    'jupyter_server=2.*' \ # 2.11 introduces extra md5 parameter to get(),
-                            # not supported by ther version of jupyter_sciencedata
-                            # used by the downstream jupyter_sciencedata_custom
-    'jupyter_server=2.6.*' \
-    'nbclassic' \
-    'jupyterlab' && \
-    conda clean --all -f -y && \
-    ( ( which npm && npm cache clean --force ) || echo "no pm" ) && \
-    jupyter notebook --generate-config && \
-    jupyter lab clean && \
-    rm -rf /home/$NB_USER/.cache/yarn && \
-    fix-permissions $CONDA_DIR && \
-    fix-permissions /home/$NB_USER
+#RUN mamba install --yes \
+#    'notebook' \
+#    'jupyter_server' \
+#    'nbclassic' \
+#    'jupyterlab' && \
+#    conda clean --all -f -y && \
+#    ( ( which npm && npm cache clean --force ) || echo "no pm" ) && \
+#    jupyter notebook --generate-config && \
+#    jupyter lab clean && \
+#    rm -rf /home/$NB_USER/.cache/yarn && \
+#    fix-permissions $CONDA_DIR && \
+#    fix-permissions /home/$NB_USER
 
 EXPOSE 80
 
@@ -166,23 +136,19 @@ ENTRYPOINT ["tini", "-g", "--"]
 CMD ["start-notebook.sh"]
 
 # Fix permissions on /etc/jupyter as root
-USER root
+#USER root
 
 # Copy local files as late as possible to avoid cache busting
 COPY start.sh start-notebook.sh start-singleuser.sh /usr/local/bin/
 # Currently need to have both jupyter_notebook_config and jupyter_server_config to support classic and lab
-COPY jupyter_notebook_config.py /etc/jupyter/
-
-# Prepare upgrade to JupyterLab V3.0 #1205
-RUN sed -re "s/c.NotebookApp/c.ServerApp/g" \
-    /etc/jupyter/jupyter_notebook_config.py > /etc/jupyter/jupyter_server_config.py
-
-RUN fix-permissions /etc/jupyter/
 
 WORKDIR $HOME
 
 # Install all OS dependencies for fully functional notebook server
-RUN apt-get update && apt-get install -yq --no-install-recommends \
+
+USER root
+
+RUN apt update && apt install -yq --no-install-recommends \
     build-essential \
     vim-tiny \
     vim \
@@ -190,7 +156,6 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     psmisc \
     telnet \
     git \
-    curl \
     openssh-client \
     file \
     zip \
@@ -202,6 +167,7 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     iproute2 \
     lmodern \
     netcat \
+    jupyter-server \
     # ---- nbconvert dependencies ----
     texlive-xetex \
     texlive-fonts-recommended \
@@ -210,18 +176,35 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
     tzdata \
     unzip \
     nano-tiny \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    # ---- facets dependency ----
+    nodejs \
+    # ffmpeg for matplotlib anim
+    ffmpeg \
+    # dvipng+cm-super for latex labels
+    dvipng \
+    cm-super \
+    && apt clean && rm -rf /var/lib/apt/lists/*
 
-# ffmpeg for matplotlib anim & dvipng+cm-super for latex labels
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg dvipng cm-super && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN mkdir /etc/jupyter/
+COPY jupyter_notebook_config.py /etc/jupyter/
+
+# Prepare upgrade to JupyterLab V3.0 #1205
+RUN sed -re "s/c.NotebookApp/c.ServerApp/g" \
+    /etc/jupyter/jupyter_notebook_config.py > /etc/jupyter/jupyter_server_config.py
+
+RUN fix-permissions /etc/jupyter/
+
+RUN mkdir -p /etc/apt/keyrings && \
+curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | \
+gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" > \
+/etc/apt/sources.list.d/nodesource.list
 
 # Switch back to $NB_USER to avoid accidental container runs as root
-USER $NB_UID
+USER $NB_USER
 
 # Install Python 3 packages
-RUN conda install --quiet --yes \
+RUN mamba install --yes \
     'beautifulsoup4' \
     'conda-forge::blas=*=openblas' \
     'bokeh' \
@@ -250,14 +233,18 @@ RUN conda install --quiet --yes \
     'vincent' \
     'widgetsnbextension'\
     'xlrd' && \
-    conda clean --all -f -y && \
-    fix-permissions "${CONDA_DIR}" && \
-    fix-permissions "/home/${NB_USER}"
+    mamba clean --all -f -y
+
+USER root
+RUN apt update && apt -y install jupyter
 
 # Install facets which does not have a pip or conda package at the moment
 WORKDIR /tmp
+RUN pip install jupyter_contrib_nbextensions
+RUN jupyter nbextension enable varInspector/main
+RUN jupyter labextension enable varInspector/main
 RUN git clone https://github.com/PAIR-code/facets.git && \
-    jupyter nbextension install facets/facets-dist/ --sys-prefix && \
+    jupyter nbextension install facets/facets-dist/ && \
     rm -rf /tmp/facets && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
@@ -270,7 +257,8 @@ RUN MPLBACKEND=Agg python -c "import matplotlib.pyplot" && \
 
 WORKDIR $HOME
 
-USER root
+RUN fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
 
 # Julia installation
 # Default values can be overridden at build time
@@ -281,12 +269,12 @@ ARG julia_version="1.5.3"
 ARG julia_checksum="f190c938dd6fed97021953240523c9db448ec0a6760b574afd4e9924ab5615f1"
 
 # R pre-requisites
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt update && \
+    apt install -y --no-install-recommends \
     fonts-dejavu \
     gfortran \
     gcc && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    apt clean && rm -rf /var/lib/apt/lists/*
 
 # Julia dependencies
 # install Julia packages in /opt/julia instead of $HOME
@@ -312,10 +300,10 @@ RUN mkdir /etc/julia && \
     chown "${NB_USER}" "${JULIA_PKGDIR}" && \
     fix-permissions "${JULIA_PKGDIR}"
 
-USER $NB_UID
+USER $NB_USER
 
 # R packages including IRKernel which gets installed globally.
-RUN conda install --quiet --yes \
+RUN mamba install --yes \
     'r-base'  \
     'r-caret' \
     'r-crayon' \
@@ -346,12 +334,15 @@ RUN conda install --quiet --yes \
 # taking effect properly on the .local folder in the $NB_USER home dir.
 RUN julia -e 'import Pkg; Pkg.update()' && \
     (test $TEST_ONLY_BUILD || julia -e 'import Pkg; Pkg.add("HDF5")') && \
-    julia -e "using Pkg; pkg\"add IJulia\"; pkg\"precompile\"" && \
-    # move kernelspec out of home \
-    mv "${HOME}/.local/share/jupyter/kernels/julia"* "${CONDA_DIR}/share/jupyter/kernels/" && \
+    julia -e "using Pkg; pkg\"add IJulia\"; pkg\"precompile\""
+
+# move kernelspec out of home
+USER root
+RUN mv "${HOME}/.local/share/jupyter/kernels/julia"* "${CONDA_DIR}/share/jupyter/kernels/" && \
     chmod -R go+rx "${CONDA_DIR}/share/jupyter" && \
     rm -rf "${HOME}/.local" && \
-    fix-permissions "${JULIA_PKGDIR}" "${CONDA_DIR}/share/jupyter"
+    fix-permissions "${JULIA_PKGDIR}" && \
+    fix-permissions "${CONDA_DIR}/share/jupyter"
 
 WORKDIR $HOME
 RUN rm -rf /home/$NB_USER/work
