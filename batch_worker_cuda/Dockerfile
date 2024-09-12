@@ -55,12 +55,15 @@ ADD start.sh /usr/local/sbin/start.sh
 
 WORKDIR /root
 # Copy over ffmpeg compiled on worker1
-COPY ffmpeg.tar.gz .
+#COPY ffmpeg.tar.gz .
+RUN curl -LO https://sciencedata.dk/public/kubefiles_public/ffmpeg_batchworker/ffmpeg.tar.gz
 RUN tar -xvzf ffmpeg.tar.gz
 
 # We need exacly the same version of this library as the one on the host system (worker1 for now)
-COPY libnvidia-encode.so.1 /usr/lib/x86_64-linux-gnu/libnvidia-encode.so.1
-COPY libnvcuvid.so.1 /usr/lib/x86_64-linux-gnu/libnvcuvid.so.1
+#COPY libnvidia-encode.so.1 /usr/lib/x86_64-linux-gnu/libnvidia-encode.so.1
+#COPY libnvcuvid.so.1 /usr/lib/x86_64-linux-gnu/libnvcuvid.so.1
+RUN curl -L -o /usr/lib/x86_64-linux-gnu/libnvidia-encode.so.1 https://sciencedata.dk/public/kubefiles_public/ffmpeg_batchworker/libnvidia-encode.so.1
+RUN curl -L -o /usr/lib/x86_64-linux-gnu/libnvcuvid.so.1 https://sciencedata.dk/public/kubefiles_public/ffmpeg_batchworker/libnvcuvid.so.1
 
 # Configure ssh access + paths
 RUN echo "alias ls='ls --color=auto'" >> .bashrc &&\
