@@ -13,7 +13,7 @@ fi
 [[ -n $PUBLIC_HOME_SERVER ]] && echo "$PUBLIC_HOME_SERVER" >> /tmp/public_home_server
 [[ -n $SETUP_SCRIPT  && -f "$SETUP_SCRIPT" ]] && . "$SETUP_SCRIPT"
 
-test -e /var/www/index.* || mv "/tmp/index.php" "/var/www/"
+ls /var/www/index.* 2>/dev/null || mv "/tmp/index.php" "/var/www/"
 phpfpm=`service --status-all 2>&1 | grep php | awk '{print $NF}'`
 service $phpfpm start
 ln -s `basename $(ls /run/php/php*-fpm.sock)` /run/php/php-fpm.sock

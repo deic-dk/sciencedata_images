@@ -54,7 +54,7 @@ RUN mkdir /run/sshd
 # Configure ssh access
 RUN echo "alias ls='ls --color=auto'" >> .bashrc &&\
   echo "PATH=${PATH}:/sbin/:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin" >> ~/.bashrc &&\
-  mkdir /root/.ssh && touch /root/.ssh/authorized_keys && chmod -R go-rw /root/.ssh
+  touch /root/.ssh/authorized_keys && chmod -R go-rw /root/.ssh
 
 #RUN sed -ri 's/^#?PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
 #RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
