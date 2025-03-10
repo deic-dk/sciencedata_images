@@ -11,21 +11,27 @@ if [[ -n "$ROOT_PASSWORD" ]]; then
 	  echo "root:$ROOT_PASSWORD" | chpasswd;
 fi
 
-# Resolve sciencedata to the 10.2.0.0/24 address of the silo of the user
-[[ -n $HOME_SERVER ]] && echo "$HOME_SERVER	sciencedata sciencedata.dk" >> /etc/hosts
-# Route traffic to ScienceData over the internal network.
+
+# Resolve unqualified sciencedata to the home server of the user running this pod
+[[ -n $HOME_SERVER ]] && echo "$HOME_SERVER sciencedata" >> /etc/hosts
+[[ -n $HOME_SERVER ]] && echo "*/5 * * * * root grep sciencedata /etc/hosts || echo \"$HOME_SERVER  sciencedata\" >> /etc/hosts" > /etc/cron.d/sciencedata_hosts
+
+# Route all traffic to ScienceData over the internal network.
 # Resolve all fully qualified silo names to local addresses - this in order to allow proper SSL handshake and client certificate auth
-echo "10.2.0.13 sciencedata.dk" >> /etc/hosts
-echo "10.2.0.14 silo1.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.15 silo2.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.16 silo3.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.17 silo4.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.18 silo5.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.19 silo6.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.20 silo7.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.21 silo8.sciencedata.dk" >> /etc/hosts
-echo "10.2.0.22 silo9.sciencedata.dk" >> /etc/hosts
-[[ -n $HOME_SERVER ]] && echo "*/5 * * * * root grep sciencedata /etc/hosts || echo \"$HOME_SERVER	sciencedata\" >> /etc/hosts" > /etc/cron.d/sciencedata_hosts
+grep 10.2.0.13 /etc/hosts || echo "10.2.0.13 sciencedata.dk" >> /etc/hosts
+grep 10.2.0.14 /etc/hosts || echo "10.2.0.14 silo1.sciencedata.dk" >> /etc/hosts
+grep 10.2.0.15 /etc/hosts || echo "10.2.0.15 silo2.sciencedata.dk" >> /etc/hosts
+grep 10.2.0.16 /etc/hosts || echo "10.2.0.16 silo3.sciencedata.dk" >> /etc/hosts
+grep 10.2.0.17 /etc/hosts || echo "10.2.0.17 silo4.sciencedata.dk" >> /etc/hosts
+grep 10.2.0.18 /etc/hosts || echo "10.2.0.18 silo5.sciencedata.dk" >> /etc/hosts
+grep 10.2.0.19 /etc/hosts || echo "10.2.0.19 silo6.sciencedata.dk" >> /etc/hosts
+grep 10.2.0.20 /etc/hosts || echo "10.2.0.20 silo7.sciencedata.dk" >> /etc/hosts
+grep 10.2.0.21 /etc/hosts || echo "10.2.0.21 silo8.sciencedata.dk" >> /etc/hosts
+grep 10.2.0.22 /etc/hosts || echo "10.2.0.22 silo9.sciencedata.dk" >> /etc/hosts
+
+BATCH_IP=`host -4 batch | awk '{print $NF}'`
+[[ -n $BATCH_IP ]] && ( grep $BATCH_IP /etc/hosts || echo "$BATCH_IP batch.sciencedata.dk" >> /etc/hosts )
+
 [[ -n $PUBLIC_HOME_SERVER ]] && echo "$PUBLIC_HOME_SERVER" >> /tmp/public_home_server
 [[ -n $SETUP_SCRIPT  && -f "$SETUP_SCRIPT" ]] && . "$SETUP_SCRIPT"
 
