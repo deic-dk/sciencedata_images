@@ -11,7 +11,6 @@ if [[ -n "$ROOT_PASSWORD" ]]; then
 	  echo "root:$ROOT_PASSWORD" | chpasswd;
 fi
 
-
 # Resolve unqualified sciencedata to the home server of the user running this pod
 [[ -n $HOME_SERVER ]] && echo "$HOME_SERVER sciencedata" >> /etc/hosts
 [[ -n $HOME_SERVER ]] && echo "*/5 * * * * root grep sciencedata /etc/hosts || echo \"$HOME_SERVER  sciencedata\" >> /etc/hosts" > /etc/cron.d/sciencedata_hosts
@@ -30,7 +29,7 @@ grep 10.2.0.21 /etc/hosts || echo "10.2.0.21 silo8.sciencedata.dk" >> /etc/hosts
 grep 10.2.0.22 /etc/hosts || echo "10.2.0.22 silo9.sciencedata.dk" >> /etc/hosts
 
 BATCH_IP=`host -4 batch | awk '{print $NF}'`
-[[ -n $BATCH_IP ]] && ( grep $BATCH_IP /etc/hosts || echo "$BATCH_IP batch.sciencedata.dk" >> /etc/hosts )
+host -4 batch && [[ -n $BATCH_IP ]] && ( grep $BATCH_IP /etc/hosts || echo "$BATCH_IP batch.sciencedata.dk" >> /etc/hosts )
 
 [[ -n $PUBLIC_HOME_SERVER ]] && echo "$PUBLIC_HOME_SERVER" >> /tmp/public_home_server
 [[ -n $SETUP_SCRIPT  && -f "$SETUP_SCRIPT" ]] && . "$SETUP_SCRIPT"
@@ -72,7 +71,11 @@ fi
 echo "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'grid';" | \
 mysql -uroot
 
-TRUSTED_VOS="$TRUSTED_VOS" GRID_USER=www-data MY_HOSTNAME=`hostname` LOCAL_USER_DN="/CN=$SD_UID/O=sciencedata.dk" \
+if [ "$MY_HOSTNAME" == "" ]; then
+  MY_HOSTNAME=`hostname`
+fi
+
+TRUSTED_VOS="$TRUSTED_VOS" GRID_USER=www-data MY_HOSTNAME="$MY_HOSTNAME" LOCAL_USER_DN="/CN=$SD_UID/O=sciencedata.dk" \
 KEY_PASSWORD=grid LOCAL_USER_KEY_PASSWORD=grid MY_DB_USERNAME=root MY_DB_PASSWORD=grid NO_DB_PASSWORD=no \
 /usr/share/gridfactory/configure_services.sh -y
 
