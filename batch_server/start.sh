@@ -75,7 +75,7 @@ if [ "$MY_HOSTNAME" == "" ]; then
   MY_HOSTNAME=`hostname`
 fi
 
-TRUSTED_VOS="$TRUSTED_VOS" GRID_USER=www-data MY_HOSTNAME="$MY_HOSTNAME" LOCAL_USER_DN="/CN=$SD_UID/O=sciencedata.dk" \
+TRUSTED_VOS="$TRUSTED_VOS" GRID_USER=www-data ADMIN_SUBJECT="$ADMIN_SUBJECT" MY_HOSTNAME="$MY_HOSTNAME LOCAL_USER_DN="/CN=$SD_UID/O=sciencedata.dk" \
 KEY_PASSWORD=grid LOCAL_USER_KEY_PASSWORD=grid MY_DB_USERNAME=root MY_DB_PASSWORD=grid NO_DB_PASSWORD=no \
 /usr/share/gridfactory/configure_services.sh -y
 
