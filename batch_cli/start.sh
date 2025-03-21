@@ -28,8 +28,13 @@ grep 10.2.0.20 /etc/hosts || echo "10.2.0.20 silo7.sciencedata.dk" >> /etc/hosts
 grep 10.2.0.21 /etc/hosts || echo "10.2.0.21 silo8.sciencedata.dk" >> /etc/hosts
 grep 10.2.0.22 /etc/hosts || echo "10.2.0.22 silo9.sciencedata.dk" >> /etc/hosts
 
-BATCH_IP=`host -4 batch | awk '{print $NF}'`
-host -4 batch && [[ -n $BATCH_IP ]] && ( grep $BATCH_IP /etc/hosts || echo "$BATCH_IP batch.sciencedata.dk" >> /etc/hosts )
+# We don't need this entry. The server does - that's why it's propagated. Take it out.
+# (Gott do it in two lines as sed -i will change the inode and not be allowed)
+sed -E '/[0-9\.]+\s+batch$/d' /etc/hosts > /tmp/hosts
+cat /tmp/hosts > /etc/hosts
+# This will not be valid after a reboot of the server. The internal DNS will.
+#BATCH_IP=`host -4 batch | awk '{print $NF}'`
+#host -4 batch && [[ -n $BATCH_IP ]] && ( grep $BATCH_IP /etc/hosts || echo "$BATCH_IP batch.sciencedata.dk" >> /etc/hosts )
 
 [[ -n $PUBLIC_HOME_SERVER ]] && echo "$PUBLIC_HOME_SERVER" >> /tmp/public_home_server
 [[ -n $SETUP_SCRIPT  && -f "$SETUP_SCRIPT" ]] && . "$SETUP_SCRIPT"

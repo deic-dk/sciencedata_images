@@ -46,6 +46,7 @@ env | grep HOME_SERVER >> .bashrc
 env | grep ONLY_FROM >> .bashrc
 env | grep SSL_DN_HEADER >> .bashrc
 env | grep TRUSTED_VOS >> .bashrc
+env | grep MY_VOS >> .bashrc
 env | grep RTE_URLS >> .bashrc
 
 # Get personal certficate/key from sciencedata
@@ -63,10 +64,6 @@ if [[ -n "$RTE_URLS" ]]; then
   sed -E -i "s|RTE_URLS *= *$|RTE_URLS = $RTE_URLS|" /etc/gridfactory.conf
 fi
 
-if [[ -n "$TRUSTED_VOS" ]]; then
-  sed -E -i "s|MY_VOS *= *(.*)$|MY_VOS = \1 $TRUSTED_VOS|" /etc/gridfactory.conf
-fi
-
 # Set the mysql password
 echo "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'grid';" | \
 mysql -uroot
@@ -75,8 +72,11 @@ if [ "$MY_HOSTNAME" == "" ]; then
   MY_HOSTNAME=`hostname`
 fi
 
-TRUSTED_VOS="$TRUSTED_VOS" GRID_USER=www-data ADMIN_SUBJECT="$ADMIN_SUBJECT" MY_HOSTNAME="$MY_HOSTNAME LOCAL_USER_DN="/CN=$SD_UID/O=sciencedata.dk" \
-KEY_PASSWORD=grid LOCAL_USER_KEY_PASSWORD=grid MY_DB_USERNAME=root MY_DB_PASSWORD=grid NO_DB_PASSWORD=no \
+TRUSTED_VOS="$TRUSTED_VOS" MY_VOS="$MY_VOS" \
+GRID_USER=www-data ADMIN_SUBJECT="$ADMIN_SUBJECT" \
+MY_HOSTNAME="$MY_HOSTNAME" LOCAL_USER_DN="/CN=$SD_UID/O=sciencedata.dk" \
+KEY_PASSWORD=grid LOCAL_USER_KEY_PASSWORD=grid \
+MY_DB_USERNAME=root MY_DB_PASSWORD=grid NO_DB_PASSWORD=no \
 /usr/share/gridfactory/configure_services.sh -y
 
 if [[ -n "$ONLY_FROM" && -n "$SSL_DN_HEADER" ]]; then
