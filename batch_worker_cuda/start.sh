@@ -53,6 +53,15 @@ export SD_UID
 export HOME_SERVER
 export MY_VOS
 
+# Add non-root user if USERNAME is set in yaml
+if [[ -n "$USERNAME" && "$USERNAME" != "root" ]]; then
+  adduser --uid 80 --home /home/$USERNAME --disabled-password --gecos '' $USERNAME
+  cp -a /root/.ssh /home/$USERNAME/
+  chown -R $USERNAME:$USERNAME /home/$USERNAME/.ssh
+else
+  USERNAME=root
+fi
+
 # Parse $PEERS - which will be of the form hostname1:ip1,hostname2:ip2,...
 
 GRIDFACTORY_SERVERS=""
@@ -67,7 +76,9 @@ export GRIDFACTORY_SERVER_IPS
 
 env | grep GRIDFACTORY >> .bashrc
 
-HOME_SERVER=$HOME_SERVER GRIDFACTORY_USER=root KEY_PASSWORD=grid GRIDFACTORY_SERVERS=$GRIDFACTORY_SERVERS  \
+HOME_SERVER=$HOME_SERVER GRIDFACTORY_USER=root JOB_USER=$USERNAME \
+KEY_PASSWORD=$KEY_PASSWORD UNENCRYPTED_KEY=$UNENCRYPTED_KEY \
+GRIDFACTORY_SERVERS=$GRIDFACTORY_SERVERS \
 GRIDFACTORY_SERVER_IPS=$GRIDFACTORY_SERVER_IPS MY_VOS=$MY_VOS \
 /usr/share/gridfactory/gridworker/configure_worker_node.sh -y
 
