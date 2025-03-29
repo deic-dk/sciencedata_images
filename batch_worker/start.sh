@@ -11,6 +11,13 @@ if [[ -n "$ROOT_PASSWORD" ]]; then
 	  echo "root:$ROOT_PASSWORD" | chpasswd;
 fi
 
+# Add non-root user if USERNAME is set in yaml
+if [[ -n "$USERNAME" && "$USERNAME" != "root" ]]; then
+  adduser --uid 80 --home /home/$USERNAME --disabled-password --gecos '' $USERNAME
+  cp -a /root/.ssh /home/$USERNAME/
+  chown -R $USERNAME:$USERNAME /home/$USERNAME/.ssh
+fi
+
 # Resolve unqualified sciencedata to the home server of the user running this pod
 [[ -n $HOME_SERVER ]] && echo "$HOME_SERVER sciencedata" >> /etc/hosts
 [[ -n $HOME_SERVER ]] && echo "*/5 * * * * root grep sciencedata /etc/hosts || echo \"$HOME_SERVER  sciencedata\" >> /etc/hosts" > /etc/cron.d/sciencedata_hosts
@@ -52,15 +59,6 @@ env | grep MY_VOS >> .bashrc
 export SD_UID
 export HOME_SERVER
 export MY_VOS
-
-# Add non-root user if USERNAME is set in yaml
-if [[ -n "$USERNAME" && "$USERNAME" != "root" ]]; then
-  adduser --uid 80 --home /home/$USERNAME --disabled-password --gecos '' $USERNAME
-  cp -a /root/.ssh /home/$USERNAME/
-  chown -R $USERNAME:$USERNAME /home/$USERNAME/.ssh
-else
-  USERNAME=root
-fi
 
 # Parse $PEERS - which will be of the form hostname1:ip1,hostname2:ip2,...
 
