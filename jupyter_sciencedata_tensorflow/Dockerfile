@@ -25,7 +25,7 @@
 
 
 FROM nvidia/cuda:12.3.0-base-ubuntu22.04 as base
-ENV DEBIAN_FRONTEND=noninteractiveFILE
+ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG C.UTF-8
 
 LABEL maintainer="ScienceData Project <support@sciencedata.dk>"
