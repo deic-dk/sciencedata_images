@@ -57,8 +57,9 @@ cd
 
 source /home/sciencedata/miniconda3/bin/activate
 conda activate
+jupyter kernelspec uninstall -y python3
 conda install -y ipykernel
-ipython kernel install --user --name=conda
+ipython kernel install --user --name=python3
 conda deactivate
 
 (jupyter lab --no-browser --notebook-dir="$root_dir" --allow-root --preferred-dir="$preferred_dir" --debug >& /tmp/jupyter.log)&
