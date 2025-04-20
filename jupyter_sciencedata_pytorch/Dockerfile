@@ -149,6 +149,8 @@ USER $NB_UID
 ENV PATH=$PATH:/home/$NB_USER/.local/bin
 RUN echo "PATH=$PATH:/home/$NB_USER/.local/bin" >> /home/$NB_USER/.bashrc
 
+RUN pip install --no-cache-dir seaborn tensorboard
+
 RUN pip install --no-cache-dir jupyter matplotlib jupyter_http_over_ws -U
 RUN pip install --no-cache-dir --upgrade notebook==6.4.12
 RUN pip install --no-cache-dir jupyter-tensorboard

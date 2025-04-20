@@ -12,8 +12,8 @@ if [[ "${RESTARTABLE}" == "yes" ]]; then
   wrapper="run-one-constantly"
 fi
 
-root_dir='/'
-preferred_dir='/'
+root_dir='/home/sciencedata'
+preferred_dir='/home/sciencedata'
 
 sudo bash<<END
 # Resolve sciencedata to the 10.2.0.0/24 address of the silo of the user
