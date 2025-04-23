@@ -122,7 +122,8 @@ USER $NB_UID
 # Install Python and other dependencies with Conda
 RUN bash -c "source /home/sciencedata/miniconda3/bin/activate && conda install python=${PYTHON_VERSION} -y && \
 conda install -c nvidia/label/cuda-12.1.1 cuda-toolkit -y  && \
-conda install -c pytorch -c nvidia pytorch torchvision torchaudio pytorch-cuda=12.1 -y && \
+conda config --add channels pytorch && \
+conda install -c pytorch -c nvidia pytorch torchvision torchaudio pytorch-cuda=12.1 pytorch-lightning>=1.4 -y && \
 conda install matplotlib -y && \
 conda install scipy -y  && \
 conda install ffmpeg -y"
