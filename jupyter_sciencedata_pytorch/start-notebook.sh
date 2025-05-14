@@ -37,9 +37,12 @@ else
   fi
 fi
 
-# Make a random 4 out of the 10 GPUs visible
+# Make a random $CUDA_VISIBLE_DEVICES_NUM (or 4 if unset) out of the available GPUs visible
 if [ -z "$CUDA_VISIBLE_DEVICES" ]; then
-  gpus=$(echo $(shuf -i 0-9 -n 4 | sort -n | sed "s|$|,|") | sed 's| ||g' | sed 's|,$||')
+  if [ -z "$CUDA_VISIBLE_DEVICES_NUM" ]; then
+    CUDA_VISIBLE_DEVICES_NUM=4
+  fi
+  gpus=$(echo `nvidia-smi --list-gpus | shuf -n $CUDA_VISIBLE_DEVICES_NUM | awk '{print $2}' | sed "s|:|, |"` | sed 's|,$||')
   export CUDA_VISIBLE_DEVICES=$gpus
 fi
 

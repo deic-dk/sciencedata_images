@@ -12,8 +12,8 @@ if [[ "${RESTARTABLE}" == "yes" ]]; then
   wrapper="run-one-constantly"
 fi
 
-root_dir='/'
-preferred_dir='/'
+root_dir='/home/sciencedata'
+preferred_dir='/home/sciencedata'
 
 sudo bash<<END
 # Resolve sciencedata to the 10.2.0.0/24 address of the silo of the user
@@ -48,11 +48,14 @@ fi
 
 cd
 
-sudo mkdir /usr/etc 
-sudo chown sciencedata /usr/etc/
-jupyter labextension disable "@jupyterlab/apputils-extension:announcements"
-
 export PATH
+export LD_LIBRARY_PATH
+
+sudo mkdir /usr/etc 
+sudo chown $NB_USER /usr/etc/
+
+sudo -E bash -c '/home/sciencedata/.local/bin/jupyter labextension disable "@jupyterlab/apputils-extension:announcements"'
+
 cd
 
 (jupyter lab --no-browser --notebook-dir="$root_dir" --allow-root --preferred-dir="$preferred_dir" --debug >& /tmp/jupyter.log)&
