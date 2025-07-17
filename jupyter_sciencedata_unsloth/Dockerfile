@@ -1,7 +1,7 @@
-# Build command: docker build -t sciencedata/jupyter_sciencedata_llama .
-# Push command: docker push sciencedata/jupyter_sciencedata_llama
-# Run command: docker run -p 8443:443 -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key sciencedata/jupyter_sciencedata_llama
-# Run command: docker run -p 8443:443 -p 4022:22 -e SSH_PUBLIC_KEY="`cat ~/.ssh/id_rsa.pub`" sciencedata/jupyter_sciencedata_llama
+# Build command: docker build -t sciencedata/jupyter_sciencedata_unsloth .
+# Push command: docker push sciencedata/jupyter_sciencedata_unsloth
+# Run command: docker run -p 8443:443 -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key sciencedata/jupyter_sciencedata_unsloth
+# Run command: docker run -p 8443:443 -p 4022:22 -e SSH_PUBLIC_KEY="`cat ~/.ssh/id_rsa.pub`" sciencedata/jupyter_sciencedata_unsloth
 #
 
 FROM nvidia/cuda:12.3.0-base-ubuntu22.04 as base
@@ -10,13 +10,16 @@ WORKDIR /app
 ENV DEBIAN_FRONTEND="noninteractive"
 ENV LANG C.UTF-8
 
+ENV TIMEZONE Europe/Copenhagen
+RUN ln -snf /usr/share/zoneinfo/$TIMEZONE /etc/localtime && echo $TIMEZONE > /etc/timezone
+
 LABEL maintainer="ScienceData Project <support@sciencedata.dk>"
 ARG NB_USER="sciencedata"
 ARG NB_UID="80"
 ARG NB_GROUP="sciencedata"
 ARG NB_GID="80"
 
-ARG PYTHON_VERSION=3.10
+ARG PYTHON_VERSION=3.11
 
 # Configure environment
 ENV SHELL=/bin/bash \
@@ -87,7 +90,10 @@ USER root
 
 FROM base as jupyter
 
-RUN apt update && apt install -y pip
+RUN sudo add-apt-repository -y ppa:deadsnakes/ppa
+
+RUN apt update && apt install -y python3.11 python3.11-dev pip cuda-nvcc-12-6 libcusparse-dev-12-6 libcublas-dev-12-6 libcusolver-dev-12-6
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 2 && update-alternatives --config python3
 
 RUN mkdir /usr/local/share/jupyter && chown -R $NB_UID:$NB_GID /usr/local/share/jupyter
 RUN mkdir /home/$NB_USER/.local && chown $NB_UID /home/$NB_USER/.local
@@ -104,11 +110,16 @@ USER $NB_UID
 ENV PATH=$PATH:/home/$NB_USER/.local/bin
 RUN echo "PATH=$PATH:/home/$NB_USER/.local/bin" >> /home/$NB_USER/.bashrc
 
-RUN pip install --no-cache-dir vllm transformers accelerate optimum optimum-quanto llama-stack llama-models fairscale ollama hf_xet ray[default] blobfile -U
+RUN SETUPTOOLS_USE_DISTUTILS=stdlib pip install --no-cache-dir vllm transformers accelerate optimum optimum-quanto llama-stack llama-models fairscale ollama hf_xet ray[default] blobfile unsloth -U
+
+RUN pip install --no-cache-dir ninja torch==2.7.0 -U
+# Set TORCH_CUDA_ARCH_LIST if running and building on different GPU types
+# NOTE: pytorch must already be installed!
+RUN pip install -v --no-build-isolation 'git+https://github.com/facebookresearch/xformers@v0.0.30' -U
 
 RUN pip install --no-cache-dir jupyter seaborn matplotlib jupyter_http_over_ws -U
 
-RUN pip uninstall --yes jupyterlab_widgets && pip install --no-input jupyterlab_widgets
+RUN pip uninstall --yes jupyterlab_widgets && pip install --no-input jupyterlab_widgets -U
 
 RUN pip install --no-cache-dir --upgrade notebook==6.4.12
 RUN jupyter labextension enable jupyter_http_over_ws
@@ -120,8 +131,8 @@ RUN ln -s /usr/local/ml/ollama ~/.ollama
 RUN ln -s /usr/local/ml/huggingface ~/.cache/huggingface
 #RUN git clone https://github.com/meta-llama/llama-models.git
 
-ENV PYTHONPATH=$PYTHONPATH:~/.local/lib/python3.10/site-packages:~/llama-models
-RUN echo "export PYTHONPATH=$PYTHONPATH:~/.local/lib/python3.10/site-packages:~/llama-models" >> /home/$NB_USER/.bashrc
+ENV PYTHONPATH=$PYTHONPATH:~/.local/lib/python3.11/site-packages:~/llama-models
+RUN echo "export PYTHONPATH=$PYTHONPATH:~/.local/lib/python3.11/site-packages:~/llama-models" >> /home/$NB_USER/.bashrc
 
 # Keep notebooks in sciencedata homedir
 RUN pip install pycurl webdavclient3

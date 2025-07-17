@@ -42,7 +42,7 @@ if [ -z "$CUDA_VISIBLE_DEVICES" ]; then
   if [ -z "$CUDA_VISIBLE_DEVICES_NUM" ]; then
     CUDA_VISIBLE_DEVICES_NUM=2
   fi
-  gpus=$(echo `nvidia-smi --list-gpus | shuf -n $CUDA_VISIBLE_DEVICES_NUM | awk '{print $2}' | sed "s|:|, |"` | sed 's|,$||')
+  gpus=$(echo `nvidia-smi --list-gpus | shuf -n $CUDA_VISIBLE_DEVICES_NUM | awk '{print $2}'` | sed 's|: *|,|g' | sed 's|,$||')
   export CUDA_VISIBLE_DEVICES=$gpus
 fi
 
