@@ -17,6 +17,11 @@
 
 set -e
 
+if [ -z "$NB_GID" ]; then
+    echo "You need to set NB_GID"
+    exit 1
+fi
+
 for d in "$@"; do
     find "$d" \
         ! \( \

@@ -1,0 +1,16 @@
+@font-face {
+    font-family: 'AdobeBlankRegular';
+        src: url('/static/nbclassic/components/MathJax/adobe-blank/AdobeBlankRegular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+      }
+
+ /* The following rules are deprecated. */ 
+
+@font-face {
+    font-family: 'Adobe Blank';
+        src: url('/static/nbclassic/components/MathJax/adobe-blank/AdobeBlankRegular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+      }
+
