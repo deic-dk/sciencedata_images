@@ -5,7 +5,7 @@
 # Push command: e.g docker push sciencedata/jupyter_sciencedata_custom:1.2
 # Run command: docker run -p 8080:80 -p 4022:22 sciencedata/jupyter_sciencedata_custom
 
-FROM sciencedata/jupyter_sciencedata
+FROM sciencedata/jupyter_sciencedata:3.0
 
 LABEL maintainer="ScienceData Project <support@sciencedata.dk>"
 ARG NB_USER="sciencedata"
