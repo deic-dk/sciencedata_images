@@ -18,6 +18,28 @@ service cron start
 
 export HOSTNAME
 
+mkdir /home/openbooks/bin
+# Add stop script for tranmission-cli
+cat <<"EOF"> /home/openbooks/bin/transmission-stop.sh
+#!/bin/bash
+
+killall transmission-cli
+find Downloads/ | grep -E '\.mkv$|\.mp4$|\.avi|\.divx|\.srt' | while read name; do
+  encoded_name=`basename "$name" | tr -d '\n' | jq -sRr @uri`
+  curl --insecure --globoff --upload "$name" https://sciencedata/files/Movies/$encoded_name
+done
+EOF
+
+cat <<"EOF"> /home/openbooks/bin/gettorrent.sh
+#!/bin/bash
+
+transmission-cli -f /home/openbooks/bin/transmission-stop.sh "$@"
+EOF
+
+chown -R openbooks:openbooks /home/openbooks/bin
+chmod +x /home/openbooks/bin/*
+
+
 IRCNAME=`date | md5sum | cut -c1-8`
 /home/openbooks/openbooks --log --debug server --no-browser-downloads -p 8080 -n o${IRCNAME} --basepath / --persist --dir /home/openbooks/ebooks/ --tls false irc.irchighway.net &
 

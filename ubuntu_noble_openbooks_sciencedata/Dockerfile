@@ -13,7 +13,7 @@ LABEL description="Ubuntu noble for deployment on sciencedata.dk"
 RUN DEBIAN_FRONTEND=noninteractive apt update &&  apt install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang duck cron \
 apt-transport-https wget jq nfs-common dropbear openssh-sftp-server gpg gpgv1 ca-certificates \
-iputils-ping traceroute
+iputils-ping traceroute transmission-cli
 
 # Configure locale
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
