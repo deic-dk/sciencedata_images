@@ -15,7 +15,7 @@ fi
 [[ -n $SETUP_SCRIPT  && -f "$SETUP_SCRIPT" ]] && . "$SETUP_SCRIPT"
 
 # If an index file isn't present in NFS storage, use the default index.php
-ls /var/www/index.* 2>/dev/null || mv "/tmp/index.php" "/var/www/"
+ls /var/www/index.* 2>/dev/null || mv "/var/lib/caddy/index.php" "/var/www/"
 
 service cron start
 phpfpm=`service --status-all 2>&1 | grep php | awk '{print $NF}'`

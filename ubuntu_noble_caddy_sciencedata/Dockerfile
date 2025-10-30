@@ -10,7 +10,7 @@ LABEL vendor="sciencedata.dk"
 LABEL version="1.0"
 LABEL description="Ubuntu noble for deployment on sciencedata.dk"
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get -y install ca-certificates
+RUN DEBIAN_FRONTEND=noninteractive apt update && apt -y install ca-certificates
 
 RUN apt update && apt install -y gpg gpgv1 curl apt-transport-https
 
@@ -30,7 +30,8 @@ RUN apt update --fix-missing
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang duck cron \
 apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear openssh-sftp-server \
-iputils-ping traceroute php-yaml php-xml php-sqlite3 php-mbstring php-gd php-curl php-zip
+iputils-ping traceroute php-yaml php-xml php-sqlite3 php-mbstring php-gd php-curl php-zip \
+imagemagick ffmpeg zip unzip
 
 RUN sed -i 's|^memory_limit = .*|memory_limit = 1024M|' /etc/php/*/*/php.ini
 
@@ -62,7 +63,7 @@ RUN echo "www ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/www && chmod 0440 /etc/s
 # Configure caddy
 RUN sed -i 's|www-data|www|' /etc/php/*/fpm/pool.d/www.conf
 ADD Caddyfile /etc/caddy/Caddyfile
-ADD index.php /tmp/index.php
+ADD index.php /var/lib/caddy/index.php
 ADD start.sh /usr/local/sbin/start.sh
 RUN chmod +x /usr/local/sbin/start.sh
 RUN rmdir /var/log/caddy && touch /var/log/caddy.log && chown www:www /var/log/caddy.log
@@ -75,6 +76,13 @@ RUN echo "alias ls='ls --color=auto'" >> .bashrc && \
 
 RUN apt-get -y autoremove && apt-get -y clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Add file browser from https://www.files.gallery/
+ADD files /var/lib/caddy/files
+RUN cd /var/lib/caddy/files/_files && unzip assets.zip && rm assets.zip && chown -R www:www /var/lib/caddy/files
+# Up Caddy's upload limit
+RUN sed -i 's|upload_max_filesize = 2M|upload_max_filesize = 10G|' /etc/php/*/fpm/php.ini
+RUN sed -i 's|post_max_size = 8M|post_max_size = 10G|' /etc/php/*/fpm/php.ini
 
 EXPOSE 22
 EXPOSE 80

@@ -30,7 +30,7 @@ RUN apt update --fix-missing
 
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-client net-tools inetutils-tools curl \
 bind9-dnsutils bind9-host psmisc vim pciutils dkms vlan unicode-data gnupg git golang cron \
-apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear openssh-sftp-server iputils-ping traceroute php-yaml duck
+apt-transport-https wget jq nfs-common caddy php-cli php-fpm dropbear openssh-sftp-server iputils-ping traceroute php-yaml duck imagemagick ffmpeg zip unzip
 
 # Create user www with UID 80 - to support r/w on NFS-mounted ScienceData partition.
 # When starting caddy as root, it switches to the user with $HOME /var/lib/caddy
@@ -46,7 +46,7 @@ RUN echo "www ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/www && chmod 0440 /etc/s
 # Configure caddy
 RUN sed -i 's|www-data|www|' /etc/php/*/fpm/pool.d/www.conf
 ADD Caddyfile /etc/caddy/Caddyfile
-ADD index.php /tmp/index.php
+ADD index.php /var/lib/caddy/index.php
 ADD start.sh /usr/local/sbin/start.sh
 RUN chmod +x /usr/local/sbin/start.sh
 RUN rmdir /var/log/caddy && touch /var/log/caddy.log && chown www:www /var/log/caddy.log
