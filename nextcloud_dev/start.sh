@@ -22,6 +22,8 @@ fi
 ls -d /var/www/nextcloud 2>/dev/null || ( cd /var/www && tar -xzf /tmp/nextcloud.tar.gz --no-same-owner )
 chown -R www:www /var/www/nextcloud
 
+sed -i "s|'datadirectory' => '/var/www/data'|'datadirectory' => '/var/www/nextcloud/data'|" /var/www/nextcloud/nextcloud/config/config.php
+
 export HTTPS_PORT
 
 sudo -u www touch /var/www/nextcloud/nextcloud/config/CAN_INSTALL
@@ -30,10 +32,11 @@ if [ "$?" != "0" ]; then
   echo secret | sudo -u www php /var/www/nextcloud/nextcloud/occ maintenance:install --database sqlite
 fi
 
-sed -i -E "s|(0 => 'localhost',)|\1 1 => 'kube.sciencedata.dk:HTTPS_PORT',|g" /var/www/nextcloud/nextcloud/config/config.php
+sed -i -E "s|, 1 => 'kube.sciencedata.dk:[0-9]+'|, 1 => 'kube.sciencedata.dk:HTTPS_PORT'|g" /var/www/nextcloud/nextcloud/config/config.php || sed -i -E "s|(0 => 'localhost',)|\1 1 => 'kube.sciencedata.dk:HTTPS_PORT',|g" /var/www/nextcloud/nextcloud/config/config.php
+sed -i -E "s|'overwrite.cli.url' => 'https://kube.sciencedata.dk:[0-9]+'|'overwrite.cli.url' => 'https://kube.sciencedata.dk:HTTPS_PORT'|g" /var/www/nextcloud/nextcloud/config/config.php
+sed -i -E "s|'overwritehost' => 'kube.sciencedata.dk:[0-9]+'|'overwritehost' => 'kube.sciencedata.dk:HTTPS_PORT'|g" /var/www/nextcloud/nextcloud/config/config.php
 sed -i "s|HTTPS_PORT|$HTTPS_PORT|g" /var/www/nextcloud/nextcloud/config/config.php
 
-sed -i "s|/var/www/nextcloud/nextcloud/data|/var/www/nextcloud/data|g" /var/www/nextcloud/nextcloud/config/config.php
 ls -d /var/www/nextcloud/data 2>/dev/null || mkdir /var/www/nextcloud/data
 ls -d /var/www/nextcloud/nextcloud/data/* 2>/dev/null && mv /var/www/nextcloud/nextcloud/data/* /var/www/nextcloud/data/
 rm -rf /var/www/nextcloud/nextcloud/data
