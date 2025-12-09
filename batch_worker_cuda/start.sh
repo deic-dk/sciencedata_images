@@ -16,6 +16,9 @@ if [[ -n "$USERNAME" && "$USERNAME" != "root" ]]; then
   adduser --uid 80 --home /home/$USERNAME --disabled-password --gecos '' $USERNAME
   cp -a /root/.ssh /home/$USERNAME/
   chown -R $USERNAME:$USERNAME /home/$USERNAME/.ssh
+  # We run gridworker as root but jobs as e.g. batch. batch should not be allowed to see the key used by root to deliver output files.
+  #RUN echo "$USERNAME:secret" | chpasswd
+  #RUN echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USERNAME && chmod 0440 /etc/sudoers.d/$USERNAME
 fi
 
 # Resolve unqualified sciencedata to the home server of the user running this pod

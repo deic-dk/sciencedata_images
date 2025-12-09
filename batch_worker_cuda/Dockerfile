@@ -37,9 +37,6 @@ cuda-toolkit-12-5
 RUN DEBIAN_FRONTEND=noninteractive apt install -y locales \
     && locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
 
-#RUN echo "www:secret" | chpasswd
-RUN echo "www ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/www && chmod 0440 /etc/sudoers.d/www
-
 # GridFactory debs
 RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridfactory_cli_linux_0_1_5.deb
 RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridworker_daemon_linux_0_1_5.deb

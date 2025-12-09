@@ -16,6 +16,9 @@ if [[ -n "$USERNAME" && "$USERNAME" != "root" ]]; then
   adduser --uid 80 --home /home/$USERNAME --disabled-password --gecos '' $USERNAME
   cp -a /root/.ssh /home/$USERNAME/
   chown -R $USERNAME:$USERNAME /home/$USERNAME/.ssh
+  # We run gridworker as root but jobs as e.g. batch. batch should not be allowed to see the key used by root to deliver output files.
+  #RUN echo "$USERNAME:secret" | chpasswd
+  #RUN echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USERNAME && chmod 0440 /etc/sudoers.d/$USERNAME
 fi
 
 # Resolve unqualified sciencedata to the home server of the user running this pod
@@ -36,7 +39,7 @@ grep 10.2.0.21 /etc/hosts || echo "10.2.0.21 silo8.sciencedata.dk" >> /etc/hosts
 grep 10.2.0.22 /etc/hosts || echo "10.2.0.22 silo9.sciencedata.dk" >> /etc/hosts
 
 # We don't need this entry. The server does - that's why it's propagated. Take it out.
-# (Gott do it in two lines as sed -i will change the inode and not be allowed)
+# (Gotta do it in two lines as sed -i will change the inode and not be allowed)
 sed -E '/[0-9\.]+\s+batch$/d' /etc/hosts > /tmp/hosts
 cat /tmp/hosts > /etc/hosts
 # This will not be valid after a reboot of the server. The internal DNS will.

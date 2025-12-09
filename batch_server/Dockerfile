@@ -46,7 +46,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
 #RUN DEBIAN_FRONTEND=noninteractive apt-get -y install console-data
 
 #RUN echo "www:secret" | chpasswd
-RUN echo "www ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/www && chmod 0440 /etc/sudoers.d/www
+RUN echo "www-data ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/www-data && chmod 0440 /etc/sudoers.d/www-data
 
 # GridFactory debs
 
