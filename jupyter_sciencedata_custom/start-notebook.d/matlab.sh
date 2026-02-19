@@ -5,14 +5,16 @@
 
 export PYTHON=/opt/conda/bin/python
 export SD_UID
-
+export PATH=$PATH:/opt/conda/bin
 export SETUP_MATLAB
-export MATLAB_SOFTWARE_DIR=/usr/local/software/matlab
+export MATLAB_SOFTWARE_DIR=/usr/local/software/MATLAB_R2025b
 export MATLAB_SOFTWARE_DIR
 export MATLAB_LICENSE_SERVER
 export MATLAB_LICENSE_PORT
 
 if [[ -n "$SETUP_MATLAB" && -d "$MATLAB_SOFTWARE_DIR" && -n "$MATLAB_LICENSE_SERVER" && -n "$MATLAB_LICENSE_PORT" ]]; then
+sudo -u $NB_USER -E bash<<"END"
+	export PATH=$PATH:/opt/conda/bin
   # First check if we're a DTU user
   user_domain=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\2|'`
   user_name=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\1|'`
@@ -30,11 +32,14 @@ if [[ -n "$SETUP_MATLAB" && -d "$MATLAB_SOFTWARE_DIR" && -n "$MATLAB_LICENSE_SER
   sudo "$PYTHON" setup.py install
   # Two kernels are installed: matlab and matlab_connect. Don't see why we need more than one way to do the same...
   jupyter kernelspec remove -y matlab_connect
+END
 fi
 
 # For LCG software, SETUP_SCRIPT could be /cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-ubuntu2004-gcc9-opt/setup.sh
+sudo -u $NB_USER -E bash<<"END"
 if [[ -n "$SETUP_SCRIPT" && -f "$SETUP_SCRIPT" ]]; then
 	. "$SETUP_SCRIPT"
 fi
+END
 
 echo "MATLAB setup all done"

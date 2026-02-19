@@ -7,7 +7,8 @@ export EXTRA_SOFTWARE_DIR=/usr/local/software/extra
 export USER_MAPPING=/usr/local/software/extra/user_mapping.txt
 export NB_USER
 export SD_UID
-
+export CONDA_PATH=/opt/conda/bin
+export PATH=$PATH:$CONDA_PATH
 export SETUP_MATHEMATICA
 export MATHEMATICA_SOFTWARE_DIR=`ls -d /usr/local/software/Wolfram/Mathematica/* | sort | tail -1`
 export WOLFRAM_JUPYTER_DIR=/usr/local/software/Wolfram/WolframLanguageForJupyter
@@ -46,20 +47,22 @@ sudo -u $NB_USER -E bash<<"END"
 		export LD_PRELOAD="$EXTRA_SOFTWARE_DIR/getpwuid_modify.so"
 		echo "export OVERRIDE_USER=$user_name" >> ~/.bashrc
 		echo "export LD_PRELOAD=\"$EXTRA_SOFTWARE_DIR/getpwuid_modify.so\"" >> ~/.bashrc
+		echo "export LD_PRELOAD=\"$EXTRA_SOFTWARE_DIR/getpwuid_modify.so\"" >> ~/.bashrc
+		echo "export PATH=$PATH:$CONDA_PATH" >> ~/.bashrc
 		"$MATHEMATICA_SOFTWARE_DIR/Executables/wolframscript" -configure WOLFRAMSCRIPT_KERNELPATH=$MATHEMATICA_SOFTWARE_DIR/Executables/WolframKernel
 		# This may take a long time (it's apparently running some license unprotect stuff with Wolfram HQ)
-		"$WOLFRAM_JUPYTER_DIR/configure-jupyter.wls" add
+		"$WOLFRAM_JUPYTER_DIR/configure-jupyter.wls" add $MATHEMATICA_SOFTWARE_DIR/Executables/WolframKernel $CONDA_PATH/jupyter
 	elif [[ -n "$MMA_MATHPASS" ]]; then
 		mkdir -p ~/.Mathematica/Licensing
 		echo "${MMA_MATHPASS}" > ~/.Mathematica/Licensing/mathpass
 		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=$MATHEMATICA_SOFTWARE_DIR/Executables/WolframKernel
-		"$WOLFRAM_JUPYTER_DIR/configure-jupyter.wls" add
+		"$WOLFRAM_JUPYTER_DIR/configure-jupyter.wls" add $MATHEMATICA_SOFTWARE_DIR/Executables/WolframKernel $CONDA_PATH/jupyter
 	fi
 fi
 
 END
 
-chown -R sciencedata /home/sciencedata/.local
+chown -R $NB_USER /home/$NB_USER/.local
 
 fi
 

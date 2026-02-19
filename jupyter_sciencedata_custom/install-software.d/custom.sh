@@ -1,68 +1,10 @@
 #!/bin/bash
 
-############################
-# ScienceData customization
-############################
-
-set -e
-
-# Keep notebooks in user's sciencedata homedir ('/files')
-pip install pycurl webdavclient3
-jupyter_server_version=`jupyter --version | grep jupyter_server | awk '{print $NF}'`
-if [[ "$jupyter_server_version" > "2.10.9" ]]; then
-  # For jupyter_server>=2.11, grab latest jupyter_sciencedata version
-  git clone https://github.com/deic-dk/jupyter_sciencedata.git
-else
-  # For jupyter_server<2.11, grab version 1.0 of jupyter_sciencedata
-  git clone --branch 1.0 https://github.com/deic-dk/jupyter_sciencedata.git
-fi
-pip install jupyter_sciencedata/
-
-echo "from jupyter_sciencedata import JupyterScienceData" >> /etc/jupyter/jupyter_notebook_config.py
-echo "c.NotebookApp.contents_manager_class = 'jupyter_sciencedata.JupyterScienceData'" >> /etc/jupyter/jupyter_notebook_config.py
-echo "c.NotebookApp.allow_origin = '*'" >> /etc/jupyter/jupyter_server_config.py
-
-# Spinning wheel on ajax calls
-python_dir=`ls -d /opt/conda/lib/python* | tail -1`
-cp jupyter_sciencedata/custom/* $python_dir/site-packages/notebook/static/custom/ || echo "No notebook/static"
-cp jupyter_sciencedata/custom/* $python_dir/site-packages/nbclassic/static/custom/ || echo "No nbclassic/static"
-ls -d $python_dir/site-packages/jupyterlab/themes/\@jupyterlab/theme-* | while read theme; do
-  cat jupyter_sciencedata/custom/custom.css >> $theme/index.css
-  cat jupyter_sciencedata/custom/custom.js >> $theme/index.js
-done
-ls -d /opt/conda/share/jupyter/lab/themes/\@jupyterlab/theme-* | while read theme; do
-  cat jupyter_sciencedata/custom/custom.css >> $theme/index.css
-  cat jupyter_sciencedata/custom/custom.js >> $theme/index.js
-done
-
-# Patch python's urllib to not match hostname with certificate
-python_dir=`ls -d /opt/conda/lib/python* | tail -1`
-cp jupyter_sciencedata/custom/* $python_dir/site-packages/notebook/static/custom/ || echo "No notebook/static"
-cp jupyter_sciencedata/custom/* $python_dir/site-packages/nbclassic/static/custom/ || echo "No nbclassic/static"
-ls -d $python_dir/site-packages/jupyterlab/themes/\@jupyterlab/theme-* | while read theme; do
-  cat jupyter_sciencedata/custom/custom.css >> $theme/index.css
-  cat jupyter_sciencedata/custom/custom.js >> $theme/index.js
-done
-ls -d /opt/conda/share/jupyter/lab/themes/\@jupyterlab/theme-* | while read theme; do
-  cat jupyter_sciencedata/custom/custom.css >> $theme/index.css
-  cat jupyter_sciencedata/custom/custom.js >> $theme/index.js
-done
-
-# sddk apparently needs kaleido
-pip install kaleido sddk
-# For now, manually override with updated version
-curl -L -o $python_dir/site-packages/sddk/__init__.py https://raw.githubusercontent.com/deic-dk/sddk_py/master/sddk/__init__.py
-
-# Patch python's urllib to not match hostname with certificate
-sed -i -r 's|(and assert_hostname is not False)|\1 and server_hostname != "sciencedata"|' $python_dir/site-packages/urllib3/connection.py 
-sed -i -r 's|(or not ssl_\.HAS_NEVER_CHECK_COMMON_NAME)|\1 or server_hostname == "sciencedata"|' $python_dir/site-packages/urllib3/connection.pynection.py || echo "No pynection"
-sed -i -r 's|(or not ssl_\.HAS_NEVER_CHECK_COMMON_NAME)|\1 or server_hostname == "sciencedata"|' $python_dir/site-packages/urllib3/connection.py
-
 ###############################
 # Scientific software packages
 ##############################
 
-# ensteinpy
+# einsteinpy
 pip install einsteinpy
 
 # astropy
@@ -71,13 +13,16 @@ pip install astropy astroquery notebook git+https://github.com/radio-astro-tools
 # Python packages for riemann_book
 pip install clawpack
 
+# MATLAB
+LD_LIBRARY_PATH=/usr/local/software/MATLAB_R2025b/bin/glnxa64 pip install matlab matlabengine
+
 ###################################
 # Jupyter fixes and customizations
 ###################################
 
 # TOC extension
 echo "export PATH=$PATH:~/.local/bin" >> ~/.bashrc
-pip install webcolors uri-template jsonpointer isoduration fqdn
+pip install webcolors uri-template jsonpointer isoduration fqdn setuptools==69.5.1
 mamba install --quiet --yes jupyter_contrib_nbextensions
 
 jupyter contrib nbextension install --sys-prefix
@@ -152,3 +97,51 @@ rm -rf facets
 # Get rid of upgrade announcements
 jupyter labextension disable "@jupyterlab/apputils-extension:announcements"
 
+############################
+# ScienceData customization
+############################
+
+set -e
+
+# Keep notebooks in user's sciencedata homedir ('/files')
+pip install pycurl webdavclient3
+jupyter_server_version=`jupyter --version | grep jupyter_server | awk '{print $NF}'`
+if [[ "$jupyter_server_version" > "2.10.9" ]]; then
+  # For jupyter_server>=2.11, grab latest jupyter_sciencedata version
+  git clone https://github.com/deic-dk/jupyter_sciencedata.git
+else
+  # For jupyter_server<2.11, grab version 1.0 of jupyter_sciencedata
+  git clone --branch 1.0 https://github.com/deic-dk/jupyter_sciencedata.git
+fi
+pip install jupyter_sciencedata/
+
+echo "from jupyter_sciencedata import JupyterScienceData" >> /etc/jupyter/jupyter_notebook_config.py
+echo "c.NotebookApp.contents_manager_class = 'jupyter_sciencedata.JupyterScienceData'" >> /etc/jupyter/jupyter_notebook_config.py
+echo "c.NotebookApp.allow_origin = '*'" >> /etc/jupyter/jupyter_server_config.py
+
+# Spinning wheel on ajax calls
+python_dir=`ls -d /opt/conda/lib/python* | tail -1`
+cp jupyter_sciencedata/custom/* $python_dir/site-packages/notebook/static/custom/ || echo "No notebook/static"
+cp jupyter_sciencedata/custom/* $python_dir/site-packages/nbclassic/static/custom/ || echo "No nbclassic/static"
+ls -d $python_dir/site-packages/jupyterlab/themes/\@jupyterlab/theme-* | while read theme; do
+  cat jupyter_sciencedata/custom/custom.css >> $theme/index.css
+  cat jupyter_sciencedata/custom/custom.js >> $theme/index.js
+done
+ls -d /opt/conda/share/jupyter/lab/themes/\@jupyterlab/theme-* | while read theme; do
+  cat jupyter_sciencedata/custom/custom.css >> $theme/index.css
+  cat jupyter_sciencedata/custom/custom.js >> $theme/index.js
+done
+ls -d $python_dir/site-packages/nbclassic/static/custom && \
+  cat jupyter_sciencedata/custom/custom.css >> $python_dir/site-packages/nbclassic/static/custom/custom.css && \
+  cat jupyter_sciencedata/custom/custom.js >> $python_dir/site-packages/nbclassic/static/custom/custom.js && \
+  echo '#shutdown_widget, #login_widget {display: none;}' >> $python_dir/site-packages/nbclassic/static/custom/custom.css
+
+# sddk apparently needs kaleido
+pip install kaleido sddk
+# For now, manually override with updated version
+curl -L -o $python_dir/site-packages/sddk/__init__.py https://raw.githubusercontent.com/deic-dk/sddk_py/master/sddk/__init__.py
+
+# Patch python's urllib to not match hostname with certificate
+sed -i -r 's|(and assert_hostname is not False)|\1 and server_hostname != "sciencedata"|' $python_dir/site-packages/urllib3/connection.py 
+sed -i -r 's|(or not ssl_\.HAS_NEVER_CHECK_COMMON_NAME)|\1 or server_hostname == "sciencedata"|' $python_dir/site-packages/urllib3/connection.pynection.py || echo "No pynection"
+sed -i -r 's|(or not ssl_\.HAS_NEVER_CHECK_COMMON_NAME)|\1 or server_hostname == "sciencedata"|' $python_dir/site-packages/urllib3/connection.py

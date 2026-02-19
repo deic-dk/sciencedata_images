@@ -35,7 +35,7 @@ if [[ ! -z "${JUPYTERHUB_API_TOKEN}" ]]; then
   # launched by JupyterHub, use single-user entrypoint
   exec /usr/local/bin/start-singleuser.sh "$@"
 elif [[ ! -z "${JUPYTER_ENABLE_LAB}" ]]; then
-    (. /usr/local/bin/start.sh $wrapper jupyter lab --no-browser --notebook-dir="$root_dir" --preferred-dir="$preferred_dir" --debug "$@" >& /tmp/jupyter.log)&
+    (. /usr/local/bin/start.sh $wrapper jupyter lab --NotebookApp.show_banner=False --no-browser --notebook-dir="$root_dir" --preferred-dir="$preferred_dir" --debug "$@" >& /tmp/jupyter.log)&
     for i in {1..20}; do
       sleep 5
       uri=`jupyter lab list | grep -E ' *http://[^/]*/(.*token=.*) *' | sed -E 's| *http://[^/]*/(.*token=.*) *|\1|' | tail -1 | awk '{print $1}'`
@@ -54,7 +54,7 @@ else
   #echo "WARN: Jupyter Notebook deprecation notice https://github.com/jupyter/docker-stacks#jupyter-notebook-deprecation-notice."
   # jupyter notebook will now launch jupyter 7, which is a 'sunset' release of the original notebook interface
   # jupyter nbclassic will launch jupyter 7 with the nbclassic extension enabled - allowing compatibility with older extensions
-  (. /usr/local/bin/start.sh $wrapper jupyter nbclassic --ServerApp.allow_remote_access='True' --no-browser --notebook-dir="$root_dir" --preferred-dir="$preferred_dir" --debug "$@" >& /tmp/jupyter.log)&
+  (. /usr/local/bin/start.sh $wrapper jupyter nbclassic --NotebookApp.show_banner=False --ServerApp.allow_remote_access='True' --no-browser --notebook-dir="$root_dir" --preferred-dir="$preferred_dir" --debug "$@" >& /tmp/jupyter.log)&
   for i in {1..20}; do
     sleep 5
     echo $i

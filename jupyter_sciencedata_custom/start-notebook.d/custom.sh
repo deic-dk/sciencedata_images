@@ -12,6 +12,11 @@ if [[ ! -e /var/run/sciencedata_software ]]; then
 fi
 END
 
+export JULIA_DEPOT_PATH=/opt/julia
+export JULIA_PKGDIR=/opt/julia
+export JULIA_VERSION="1.11.7"
+export CONDA_DIR=/opt/conda
+
 # Make sure that in the container we're in the homedir (ROOT writes tmp files to cwd)
 root_init=`ls -d /opt/conda/lib/python*/site-packages/JupyROOT/__init__.py | tail -1`
 if [ -n "$root_init" ]; then
@@ -23,3 +28,4 @@ fi
 if [[ -n "$SETUP_SCRIPT" && -f "$SETUP_SCRIPT" ]]; then
   . "$SETUP_SCRIPT"
 fi
+
