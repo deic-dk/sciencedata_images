@@ -58,7 +58,6 @@ sudo -u $NB_USER -E bash<<"END"
 		wolframscript -configure WOLFRAMSCRIPT_KERNELPATH=$MATHEMATICA_SOFTWARE_DIR/Executables/WolframKernel
 		"$WOLFRAM_JUPYTER_DIR/configure-jupyter.wls" add $MATHEMATICA_SOFTWARE_DIR/Executables/WolframKernel $CONDA_PATH/jupyter
 	fi
-fi
 
 END
 
