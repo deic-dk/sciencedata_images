@@ -124,7 +124,7 @@ USER $NB_UID
 RUN bash -c "source /home/sciencedata/miniconda3/bin/activate && conda install python=${PYTHON_VERSION} -y && \
 conda install -c nvidia/label/cuda-12.1.1 cuda-toolkit -y  && \
 conda config --add channels pytorch && \
-conda install -c pytorch -c nvidia pytorch torchvision torchaudio pytorch-cuda=12.1 'pytorch-lightning>=1.4' -y && \
+conda install -c pytorch -c nvidia pytorch torchvision torchaudio pytorch-cuda=12.1 'pytorch-lightning' -y && \
 conda install matplotlib  scipy ffmpeg -y"
 
 ###########################
