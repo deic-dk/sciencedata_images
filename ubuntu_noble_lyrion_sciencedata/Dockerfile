@@ -22,9 +22,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
 # Create user lyrion with UID 80 - to support r/w on NFS-mounted ScienceData partition.
 RUN sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
     sed -i.bak -e 's/^%sudo/#%sudo/' /etc/sudoers && \
-    adduser --uid 80 --home /home/lyrion --disabled-password --gecos '' lyrion && \
-    mkdir /home/lyrion/music && \
-    chown -R lyrion /home/lyrion
+    adduser --uid 80 --home /home/lyrion --disabled-password --gecos '' lyrion
 
 #RUN echo "lyrion:secret" | chpasswd
 RUN echo "lyrion ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/lyrion && chmod 0440 /etc/sudoers.d/lyrion
@@ -45,7 +43,10 @@ RUN dpkg -i lyrionmusicserver_9.0.3_amd64.deb
 ADD RadioNowPlaying.svg /usr/share/squeezeboxserver/HTML/EN/html/images/RadioNowPlaying.svg
 RUN sed -i 's|http://dabdig.co.uk/slimserver-rep/images/RadioNowPlaying.svg|/html/images/RadioNowPlaying.svg|' /usr/share/squeezeboxserver/HTML/EN/settings/wizard.json
 
-RUN chgrp audio /home/lyrion && chmod g+rwx /home/lyrion
+RUN mkdir /var/lib/squeezeboxserver/music && \
+    chown -R lyrion /home/lyrion /var/lib/squeezeboxserver/music && \
+    chgrp audio /var/lib/squeezeboxserver/music && \
+    chmod g+rwx /var/lib/squeezeboxserver/music
 
 EXPOSE 22
 EXPOSE 9000
