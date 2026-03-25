@@ -2,7 +2,7 @@
 
 # SSH access to account with sudo rights - or just set password for root
 if [[ -n "$SSH_PUBLIC_KEY" ]]; then
-	  echo "$SSH_PUBLIC_KEY" >> $SD_HOME/.ssh/authorized_keys
+	  echo "$SSH_PUBLIC_KEY" >> $MY_HOME/.ssh/authorized_keys
 fi
 if [[ -n "$ROOT_PASSWORD" ]]; then
 	  echo "root:$ROOT_PASSWORD" | chpasswd;
@@ -47,10 +47,10 @@ cat selfsigned_cert.pem sciencedata_ca.pem > /etc/ssl/ca_certs.pem
 chown mongodb /etc/ssl/mongodb_certkey.pem /etc/mongod.conf /etc/ssl/ca_certs.pem
 # Get personal certficate/key from sciencedata
 sleep 10
-curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getcert |  jq -r .data.certificate > $SD_HOME/mycert.pem
-curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $SD_HOME/mykey.pem
-cat $SD_HOME/mycert.pem $SD_HOME/mykey.pem > $SD_HOME/mycertkey.pem
-chown $SD_USER:$SD_USER $SD_HOME/*.pem
+curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getcert |  jq -r .data.certificate > $MY_HOME/mycert.pem
+curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $MY_HOME/mykey.pem
+cat $MY_HOME/mycert.pem $MY_HOME/mykey.pem > $MY_HOME/mycertkey.pem
+chown $MY_USER:$MY_USER $MY_HOME/*.pem
 
 if [ -z "`ls /mnt/mongodb/WiredTiger 2>/dev/null`" ]; then
 	mkdir /mnt/mongodb
@@ -61,7 +61,7 @@ if [ -z "`ls /mnt/mongodb/WiredTiger 2>/dev/null`" ]; then
 	# Add admin user
 	mongosh admin --eval "db.createUser({user: 'admin', pwd: 'secret', roles: ['readWrite', 'userAdminAnyDatabase', { role: 'root', db: 'admin' }]})"
 	# Add myself - i.e. my X.509 subject
-	ssl_subject=`openssl x509 -nameopt rfc2253 -in $SD_HOME/mycert.pem -noout -subject | sed -E 's|^subject=||' | sed -E 's| +||g'`
+	ssl_subject=`openssl x509 -nameopt rfc2253 -in $MY_HOME/mycert.pem -noout -subject | sed -E 's|^subject=||' | sed -E 's| +||g'`
 	mongosh -u admin -p secret admin --eval "db.getSiblingDB(\"\$external\").runCommand({createUser: '$ssl_subject', roles: [{role: 'userAdminAnyDatabase', db: 'admin'}]})"
 	# Show users
 	mongosh -u admin -p secret --eval "db.system.users.find()"
