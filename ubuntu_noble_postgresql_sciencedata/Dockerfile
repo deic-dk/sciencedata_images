@@ -56,7 +56,7 @@ RUN apt-get -y autoremove && apt-get -y clean && \
 EXPOSE 22
 EXPOSE 5432
 
-COPY postgresql.conf /etc/postgresql/16/main/mongod.conf
+COPY postgresql.conf /etc/postgresql/16/main/postgresql.conf
 COPY pg_hba.conf /etc/postgresql/16/main/pg_hba.conf
 RUN chown -R postgres:postgres /etc/postgresql/16/main
 COPY start.sh /usr/local/sbin/start.sh

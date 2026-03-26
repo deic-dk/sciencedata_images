@@ -37,6 +37,9 @@ chmod +x /usr/local/sbin/backup_postgresql.sh
 sed -E "s|^([^\.]+\s+$hostname)|#\1|" /etc/hosts > /tmp/hosts
 cat /tmp/hosts > /etc/hosts
 
+# Create new snakeoil cert with current hostname as CN
+make-ssl-cert generate-default-snakeoil --force-overwrite
+
 cd
 # Get sciencedata.dk ca certificate
 curl https://sciencedata.dk/my_ca_cert.pem -o sciencedata_ca.pem
@@ -48,17 +51,18 @@ sleep 10
 curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getcert |  jq -r .data.certificate > $MY_HOME/mycert.pem
 curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $MY_HOME/mykey.pem
 chown $MY_USER:$MY_USER $MY_HOME/*.pem
+chmod go-rw $MY_USER:$MY_USER $MY_HOME/*.pem
 
 service postgresql stop
 if [ -z "`ls /mnt/postgresql/16 2>/dev/null`" ]; then
 	mkdir /mnt/postgresql
 	chown postgres:postgres /mnt/postgresql
-	cp -a /var/lib/postgres/16 /mnt/postgresql/
+	cp -a /var/lib/postgresql/16 /mnt/postgresql/
 fi
 service postgresql start
 
 # Create user
-cn=`openssl x509 -in mycert.pem -noout -subject -nameopt compat | sed -E 's|.+/CN=(.+)/.+|\1|'`
+export cn=`openssl x509 -in $MY_HOME/mycert.pem -noout -subject -nameopt compat | sed -E 's|.+/CN=(.+)/.+|\1|'`
 sudo su - postgres -c "createuser --superuser $cn"
 
 function gracefulShutdown {
