@@ -9,6 +9,7 @@ python3 -m venv /var/lib/immich/app/machine-learning/venv
   # Initiate subshell to setup venv
   . /var/lib/immich/app/machine-learning/venv/bin/activate
   pip3 install uv pydantic-settings
+  rustup default stable
   cd /var/lib/immich/home/immich/machine-learning
   uv sync --no-install-project --no-install-workspace --extra cpu --no-cache --active --link-mode=copy
 )
@@ -26,27 +27,10 @@ unzip cities500.zip
 date --iso-8601=seconds | tr -d "\n" > geodata-date.txt
 rm cities500.zip
 
+ln -s $IMMICH_PATH/home/media/upload $APP/
+ln -s $IMMICH_PATH/home/media/upload $APP/machine-learning/
+
 # Install sharp
 cd $APP
-pnpm install sharp
-
-# Set up upload directory
-mkdir -p $IMMICH_PATH/upload
-ln -s $IMMICH_PATH/upload $APP/
-ln -s $IMMICH_PATH/upload $APP/machine-learning/
-
-mkdir $APP/upload/encoded-video/
-mkdir $APP/upload/library/
-mkdir $APP/upload/upload
-mkdir $APP/upload/profile/
-mkdir $APP/upload/thumbs/
-mkdir $APP/upload/backups/
-touch $APP/upload/encoded-video/.immich
-touch $APP/upload/library/.immich
-touch $APP/upload/upload/.immich
-touch $APP/upload/profile/.immich
-touch $APP/upload/thumbs/.immich
-touch $APP/upload/backups/.immich
-
-chown -R immich:immich $IMMICH_PATH
+pnpm --dangerously-allow-all-builds install sharp
 

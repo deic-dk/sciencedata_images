@@ -17,6 +17,16 @@ fi
 sudo service cron start
 
 export HOSTNAME
+# For run_pod to set NFS_VOLUME_PATH requires setting the environment variable NFS_VOLUME_PATH (to "") in the YAML.
+# This may have been forgotten by the YAML author, so we fall back to using df.
+if [ -z "$NFS_VOLUME_PATH" ]; then
+	mount_path=`df | grep :/ | awk '{print $1}'`
+	mount_dir=`basename $mount_path`
+else
+	mount_dir=`basename "$NFS_VOLUME_PATH"`
+fi
+
+export DST_NAME=immich_data-$mount_dir.sql.gz
 
 ##################
 # Reddis
@@ -38,15 +48,14 @@ function gracefulShutdown {
   echo "Shutting down!"
   cd /var/lib/immich/home
   pg_dump -c immich | gzip > immich_data.sql.gz
-  
-  curl --insecure --upload immich_data.sql.gz https://sciencedata/files/immich_data.sql.gz
+  curl --insecure --upload immich_data.sql.gz https://sciencedata/files/$DST_NAME
 }
 
 # Re-establish DB
 cd /var/lib/immich/home
 for i in 1 2 3 4; do
-  status=`curl -I --silent --insecure https://sciencedata/files/immich_data.sql.gz | grep ^HTTP | awk '{print $2}'`
-  [[ $status < 400 ]] && curl -LO --insecure https://sciencedata/files/immich_data.sql.gz && break
+  status=`curl -I --silent --insecure https://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print $2}'`
+  [[ $status < 400 ]] && curl -L -o immich_data.sql.gz --insecure https://sciencedata/files/$DST_NAME && break
   sleep 3
 done
 if [ -e immich_data.sql.gz ]; then
@@ -56,19 +65,22 @@ if [ -e immich_data.sql.gz ]; then
 	fi
 fi
 
+IMMICH_PATH=/var/lib/immich
 
 READ_ONLY=`df -hT | grep nfs4 | grep '/tank/data' | awk '{print $NF}'`
 if [ "$READ_ONLY" ]; then
 	# Disable upload if NFS volume  is mounted r/w
 	sed -i "s|</head>|<style>#dashboard-navbar button:nth-child(2) {display: none;}</style>\n<script>\ndocument.body.addEventListener('dragenter',function(event){event.stopPropagation();}, true);window.addEventListener('load',function(){var buttons=document.getElementsByTagName('button');for(var i=0;i<buttons.length;i++){if(buttons[i].textContent.trim()=='Upload'){buttons[i].style.display='none';break;}}});\n</script>\n</head>|" /var/lib/immich/app/www/index.html
-	UPLOAD_LOCATION=upload
+	export UPLOAD_LOCATION=upload
 else
 	if [ ! -e "/var/lib/immich/home/media/upload" ]; then
 		# Create upload folder in NFS volume if it is mounted r/w
 		mkdir "/var/lib/immich/home/media/upload"
 	fi
-	export UPLOAD_LOCATION=/var/lib/immich/home/media/upload
+	export UPLOAD_LOCATION=$IMMICH_PATH/home/media/upload
 fi
+
+chown -R immich:immich $IMMICH_PATH
 
 # Run Immich
 export PATH=/usr/lib/jellyfin-ffmpeg:$PATH

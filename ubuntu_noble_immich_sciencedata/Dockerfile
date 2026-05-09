@@ -10,7 +10,8 @@ LABEL vendor="sciencedata.dk"
 LABEL version="1.0"
 LABEL description="Ubuntu noble for deployment on sciencedata.dk"
 
-ENV REV=v2.2.0
+#ENV REV=v2.2.0
+ENV REV=v2.7.5
 ENV IMMICH_PATH=/var/lib/immich
 ENV APP=$IMMICH_PATH/app
 
@@ -55,7 +56,7 @@ RUN curl https://repo.jellyfin.org/jellyfin_team.gpg.key | \
     gpg --dearmor --yes --output /etc/apt/keyrings/jellyfin.gpg && \
     chmod 644 /etc/apt/keyrings/jellyfin.gpg
 
-# Postgres 17
+# Postgres 18
 RUN sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
 RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
 
@@ -86,7 +87,9 @@ RUN DEBIAN_FRONTEND=noninteractive apt update &&  apt install -y nodejs redis po
         libany-uri-escape-perl \
         libmojolicious-perl \
         libfile-slurper-perl \
-        liblcms2-2
+        liblcms2-2 \
+        wget \
+        libgl1
 
 #RUN rustup install nightly && rustup default nightly
 
@@ -111,9 +114,14 @@ RUN grep -Rl /usr/src | xargs -n1 sed -i -e "s@/usr/src@$IMMICH_PATH@g"
 RUN grep -RlE "\"/build\"|'/build'" | xargs -n1 sed -i -e "s@\"/build\"@\"$APP\"@g" -e "s@'/build'@'$APP'@g"
 RUN mkdir $IMMICH_PATH/cache $IMMICH_PATH/app $IMMICH_PATH/home/media $APP/machine-learning
 RUN corepack enable pnpm && corepack use pnpm@latest && cd immich/server && COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm install --frozen-lockfile --force && pnpm run build && pnpm prune --prod --no-optional --config.ci=true
+
+# Install extism/js-pdk for extism-js
+RUN mkdir -p /root/.local/bin && curl -O https://raw.githubusercontent.com/extism/js-pdk/main/install.sh && sed -i -e 's@sudo@@g' -e "s@/usr/local/binaryen@$HOME/binaryen@g" -e "s@/usr/local/bin@$HOME/.local/bin@g" install.sh && bash install.sh
+
 RUN cd immich/open-api/typescript-sdk && pnpm install --frozen-lockfile --force && pnpm run build
 RUN cd immich/web && NODE_OPTIONS="--max-old-space-size=4096" pnpm install --frozen-lockfile --force && pnpm run build
-RUN cd immich && cp -aL server/node_modules server/dist server/bin $APP/ && cp -a web/build $APP/www && cp -a server/resources server/package.json pnpm-lock.yaml $APP/ && cp -a LICENSE $APP/ && cp -a i18n $APP/../
+RUN export PATH=$PATH:/root/.local/bin && cd immich/plugins && pnpm install --frozen-lockfile --force && pnpm run build
+RUN cd immich && cp -aL server/node_modules server/dist server/bin $APP/ && cp -a web/build $APP/www && cp -a server/src server/package.json pnpm-lock.yaml $APP/ && cp -a LICENSE $APP/ && cp -a i18n $APP/../ && mkdir -p $APP/corePlugin && cp -a plugins/dist $APP/corePlugin/ && cp -a plugins/manifest.json $APP/corePlugin/
 
 RUN chown -R immich:immich $IMMICH_PATH
 
