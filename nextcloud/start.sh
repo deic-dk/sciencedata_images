@@ -43,12 +43,23 @@ chown -R www:www /var/www/nextcloud/data
 
 export HOSTNAME
 
+# For run_pod to set NFS_VOLUME_PATH requires setting the environment variable NFS_VOLUME_PATH (to "") in the YAML.
+# This may have been forgotten by the YAML author, so we fall back to using df.
+if [ -z "$NFS_VOLUME_PATH" ]; then
+	mount_path=`df | grep :/ | awk '{print $1}'`
+	mount_dir=`basename $mount_path`
+else
+	mount_dir=`basename "$NFS_VOLUME_PATH"`
+fi
+
+export DST_NAME=owncloud.db-$mount_dir.gz
+
 function gracefulShutdown {
   echo "Shutting down!"
   killall caddy
   cd /var/db
   gzip owncloud.db
-  curl --insecure --upload owncloud.db.gz https://sciencedata/files/owncloud.db.gz
+  curl --insecure --upload owncloud.db.gz https://sciencedata/files/$DST_NAME
 }
 
 # If we've mounted r/w, we use the mounted directory for data, otherwise use /var/www/nextcloud/data and add symlink 'sciencedata', pointing to the mounted directory in the user kube's homedir
@@ -70,8 +81,8 @@ END
 else
     ## With r/w data directory we reuse the DB if possible
     for i in 1 2 3 4; do
-    status=`curl -I --silent --insecure https://sciencedata/files/owncloud.db.gz | grep ^HTTP | awk '{print $2}'`
-    [[ $status < 400 ]] && curl -L -o /var/db/owncloud.db.gz --insecure https://sciencedata/files/owncloud.db.gz && gunzip /var/db/owncloud.db.gz && chown www:www /var/db/owncloud.db && sed -i -E "s|( *)('loglevel' => 1,)|\1'installed' => true,\n\1\2|" /var/www/nextcloud/config/config.php && break
+    status=`curl -I --silent --insecure https://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print $2}'`
+    [[ $status < 400 ]] && curl -L -o /var/db/owncloud.db.gz --insecure https://sciencedata/files/$DST_NAME && gunzip /var/db/owncloud.db.gz && chown www:www /var/db/owncloud.db && sed -i -E "s|( *)('loglevel' => 1,)|\1'installed' => true,\n\1\2|" /var/www/nextcloud/config/config.php && break
     sleep 10
   done
 fi

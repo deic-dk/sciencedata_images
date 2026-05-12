@@ -16,17 +16,28 @@ fi
 
 export HOSTNAME
 
+# For run_pod to set NFS_VOLUME_PATH requires setting the environment variable NFS_VOLUME_PATH (to "") in the YAML.
+# This may have been forgotten by the YAML author, so we fall back to using df.
+if [ -z "$NFS_VOLUME_PATH" ]; then
+	mount_path=`df | grep :/ | awk '{print $1}'`
+	mount_dir=`basename $mount_path`
+else
+	mount_dir=`basename "$NFS_VOLUME_PATH"`
+fi
+
+export DST_NAME=kavita_config-$mount_dir.tar.gz
+
 function gracefulShutdown {
   echo "Shutting down!"
   cd /home/kavita/Kavita
   tar -cvzf /tmp/kavita_config.tar.gz config
-  curl --insecure --upload /tmp/kavita_config.tar.gz https://sciencedata/files/kavita_config.tar.gz
+  curl --insecure --upload /tmp/kavita_config.tar.gz https://sciencedata/files/$DST_NAME
 }
 
 cd /home/kavita/Kavita
 for i in 1 2 3 4; do
-  status=`curl -I --silent --insecure https://sciencedata/files/kavita_config.tar.gz | grep ^HTTP | awk '{print $2}'`
-  [[ $status < 400 ]] && curl -LO --insecure https://sciencedata/files/kavita_config.tar.gz && tar -xvzf kavita_config.tar.gz && break
+  status=`curl -I --silent --insecure https://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print $2}'`
+  [[ $status < 400 ]] && curl -L -o kavita_config.tar.gz --insecure https://sciencedata/files/$DST_NAME && tar -xvzf kavita_config.tar.gz && break
   sleep 10
 done
 
