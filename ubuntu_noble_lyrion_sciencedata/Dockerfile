@@ -38,8 +38,8 @@ RUN apt-get -y autoremove && apt-get -y clean && \
 
 # Add lyrion
 
-RUN curl -LO https://downloads.lms-community.org/LyrionMusicServer_v9.0.3/lyrionmusicserver_9.0.3_amd64.deb
-RUN dpkg -i lyrionmusicserver_9.0.3_amd64.deb
+RUN curl -LO https://downloads.lms-community.org/LyrionMusicServer_v9.1.0/lyrionmusicserver_9.1.0_amd64.deb
+RUN dpkg -i lyrionmusicserver_9.1.0_amd64.deb
 ADD RadioNowPlaying.svg /usr/share/squeezeboxserver/HTML/EN/html/images/RadioNowPlaying.svg
 RUN sed -i 's|http://dabdig.co.uk/slimserver-rep/images/RadioNowPlaying.svg|/html/images/RadioNowPlaying.svg|' /usr/share/squeezeboxserver/HTML/EN/settings/wizard.json
 

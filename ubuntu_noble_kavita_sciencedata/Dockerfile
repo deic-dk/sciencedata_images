@@ -39,7 +39,7 @@ RUN apt-get -y autoremove && apt-get -y clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Add Kavita
-RUN curl -L -o /home/kavita/kavita-linux-x64.tar.gz https://github.com/Kareadita/Kavita/releases/download/v0.8.7/kavita-linux-x64.tar.gz
+RUN curl -L -o /home/kavita/kavita-linux-x64.tar.gz https://github.com/Kareadita/Kavita/releases/download/v0.9.0/kavita-linux-x64.tar.gz
 RUN cd /home/kavita && tar -xvzf kavita-linux-x64.tar.gz && chown -R kavita:kavita kavita-linux-x64.tar.gz Kavita && chmod +x Kavita/Kavita
 
 EXPOSE 22
