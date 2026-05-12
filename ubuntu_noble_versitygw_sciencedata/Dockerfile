@@ -40,8 +40,11 @@ RUN apt-get -y autoremove && apt-get -y clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Add VersityGW
-RUN curl -LO https://github.com/versity/versitygw/releases/download/v1.3.1/versitygw_1.3.1_linux_amd64.deb
-RUN dpkg -i versitygw_1.3.1_linux_amd64.deb
+RUN curl -LO https://github.com/versity/versitygw/releases/download/v1.4.1/versitygw_1.4.1_linux_amd64.deb
+RUN dpkg -i versitygw_1.4.1_linux_amd64.deb
+
+# Add AWS CLI
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && ./aws/install
 
 EXPOSE 22
 EXPOSE 7070
