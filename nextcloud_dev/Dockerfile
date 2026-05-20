@@ -10,11 +10,11 @@ LABEL vendor="sciencedata.dk"
 LABEL version="1.0"
 LABEL description="Nextcloud on Ubuntu noble for deployment on sciencedata.dk"
 
-RUN curl -L -o /tmp/nextcloud.tar.gz https://silo2.sciencedata.dk/public/kubefiles_public/nextcloud.tar.gz
+RUN apt update && apt install -y rsync file sqlite3
 
-RUN sed -i 's|root \* /var/www|root * /var/www/nextcloud/nextcloud|' /etc/caddy/Caddyfile
+#RUN curl -L -o /tmp/nextcloud.tar.gz https://silo2.sciencedata.dk/public/kubefiles_public/nextcloud-33.0.2.tar.gz
 
-RUN touch /var/log/nextcloud.log && chown www:www /var/log/nextcloud.log
+RUN sed -i 's|root \* /var/www|root * /var/www/nextcloud|' /etc/caddy/Caddyfile
 
 ADD start.sh /usr/local/sbin/start.sh
 RUN chmod +x /usr/local/sbin/start.sh
