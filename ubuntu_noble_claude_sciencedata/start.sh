@@ -34,6 +34,11 @@ function gracefulShutdown {
   curl --insecure --upload /tmp/claude.tar.gz https://sciencedata/files/$DST_NAME
 }
 
+cat << EOF > /etc/cron.hourly/claude_backup
+	cd /home/claude && tar -cvzf /tmp/claude.tar.gz .claude* && curl --insecure --upload /tmp/claude.tar.gz https://sciencedata/files/$DST_NAME
+EOF
+chmod +x /etc/cron.hourly/claude_backup
+
 cd
 for i in 1 2 3 4; do
   status=`curl -I --silent --insecure https://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print $2}'`
