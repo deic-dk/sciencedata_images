@@ -35,9 +35,13 @@ function gracefulShutdown {
 }
 
 cat << EOF > /etc/cron.hourly/claude_backup
-	cd /home/claude && tar -cvzf /tmp/claude.tar.gz .claude* && curl --insecure --upload /tmp/claude.tar.gz https://sciencedata/files/$DST_NAME
+#!/bin/bash
+
+cd /home/claude && tar -cvzf /tmp/claude.tar.gz .claude* && curl --insecure --upload /tmp/claude.tar.gz https://sciencedata/files/$DST_NAME
 EOF
 chmod +x /etc/cron.hourly/claude_backup
+
+service cron start
 
 cd
 for i in 1 2 3 4; do
