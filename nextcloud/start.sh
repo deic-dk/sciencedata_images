@@ -16,8 +16,42 @@ fi
 
 service cron start
 phpfpm=`service --status-all 2>&1 | grep php | awk '{print $NF}'`
+cat <<"EOF">/etc/php/8.3/fpm/conf.d/99-sciencedata-uploads.ini
+max_execution_time = 3600
+max_input_time = 3600
+EOF
+chown www:www /etc/php/8.3/fpm/conf.d/99-sciencedata-uploads.ini
 service $phpfpm start
 ln -s `basename $(ls /run/php/php*-fpm.sock)` /run/php/php-fpm.sock
+
+## Modify Caddyfile, so the header X-Forwarded-For is trusted and client IP is set correctly and not to 10.2.12.1
+cat <<"EOF">/etc/caddy/Caddyfile
+{
+	servers {
+		trusted_proxies static 10.2.12.1
+	}
+}
+
+:80 {
+	# Set this path to your site's directory.
+	root * /var/www/nextcloud
+
+	# files_picocms pretty URLs
+	@picocms path /sites /sites/* /users /users/*
+	rewrite @picocms /remote.php{uri}
+
+	# Enable the static file server.
+	file_server
+
+	# Serve the PHP site through php-fpm.
+	php_fastcgi unix//run/php/php-fpm.sock
+
+	log {
+		output file /var/log/caddy.log
+	}
+}
+EOF
+
 
 ###
 # Nextcloud stuff
