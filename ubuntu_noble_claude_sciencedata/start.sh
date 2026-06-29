@@ -43,7 +43,7 @@ chmod +x /etc/cron.hourly/claude_backup
 
 service cron start
 
-cd
+cd /home/claude 
 for i in 1 2 3 4; do
   status=`curl -I --silent --insecure https://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print $2}'`
   [[ $status < 400 ]] && curl -L -o claude.tar.gz --insecure https://sciencedata/files/$DST_NAME && tar -xvzf claude.tar.gz && break
@@ -52,5 +52,14 @@ done
 chown -R claude:claude .claude*
 
 trap gracefulShutdown EXIT
+
+# Web terminal: ttyd served under a secret base-path = a
+# capability URL, fronted by the master's per-pod TLS Caddy. tmux keeps the
+# shell (and `claude`) alive across websocket drops — ttyd's client auto-
+# reconnects and re-attaches, so brief network glitches no longer kill the session.
+HASH=$(tr -dc 'a-f0-9' </dev/urandom | head -c 48)
+ttyd -W -p 7681 -b "/$HASH" -t disableLeaveAlert=true \
+  su - claude -c 'tmux new -A -s claude' &
+echo "$HASH/" > /tmp/URI
 
 /usr/sbin/dropbear -p 22 -W 65536 -F -E
