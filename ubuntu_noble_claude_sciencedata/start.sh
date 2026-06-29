@@ -57,6 +57,15 @@ trap gracefulShutdown EXIT
 # capability URL, fronted by the master's per-pod TLS Caddy. tmux keeps the
 # shell (and `claude`) alive across websocket drops — ttyd's client auto-
 # reconnects and re-attaches, so brief network glitches no longer kill the session.
+cat << "EOF">> .tmux.conf
+set -ga terminal-overrides ',xterm*:smcup@:rmcup@'
+set -g history-limit 100000
+set -g mouse on
+bind -n PageUp copy-mode -eu
+EOF
+
+chown -R claude:claude .tmux.conf
+
 HASH=$(tr -dc 'a-f0-9' </dev/urandom | head -c 48)
 ttyd -W -p 7681 -b "/$HASH" -t disableLeaveAlert=true \
   su - claude -c 'tmux new -A -s claude' &
