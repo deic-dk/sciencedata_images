@@ -49,17 +49,23 @@ env | grep TRUSTED_VOS >> .bashrc
 env | grep MY_VOS >> .bashrc
 env | grep RTE_URLS >> .bashrc
 
-# Get personal certficate/key from sciencedata
-cat << EOF >> .bashrc
-if [ ! -e $HOME/.gridfactory/userkey.pem ]; then
-mkdir $HOME/.gridfactory
-curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getcert | jq -r .data.certificate > $HOME/.gridfactory/usercert.pem
-curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $HOME/.gridfactory/userkey_unenc.pem
-# Encrypt the key
-openssl rsa -des3 -in .gridfactory/userkey_unenc.pem -passin "pass:" -passout "pass:grid" > $HOME/.gridfactory/userkey.pem
+if [ -n "$SD_UID" -a -n "$HOME_SERVER" -a ! -s "$MY_PERSONAL_CERT_PATH/userkey_unenc.pem" ]; then
+	# Get personal certficate/key from sciencedata - this is just for testing
+	mkdir $HOME/.gridfactory
+	# Getting the cert/key requires ScienceData to recognize this pod as owned by you.
+	# ScienceData has a 30 seconds pods cache refresh cycle, so we try 4 times with 10 seconds in between each.
+	i=0
+	while [ ! -s "$SSL_KEY_UNENC" -a $i -lt 5 ]; do
+		curl --insecure https://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $HOME/.gridfactory/userkey_unenc.pem
+		sleep 10
+		i=$(( i + 1 ))
+	done
+	if [ -s "$SSL_KEY_UNENC" ]; then
+		curl --insecure https://$HOME_SERVER/remote.php/getcert | jq -r .data.certificate > $HOME/.gridfactory/usercert.pem
+		# Encrypt the key
+		openssl rsa -des3 -in .gridfactory/userkey_unenc.pem -passin "pass:" -passout "pass:grid" > $HOME/.gridfactory/userkey.pem
+	fi
 fi
-EOF
-
 if [[ -n "$RTE_URLS" ]]; then
   sed -E -i "s|RTE_URLS *= *$|RTE_URLS = $RTE_URLS|" /etc/gridfactory.conf
 fi
