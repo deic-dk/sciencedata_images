@@ -60,8 +60,13 @@ trap gracefulShutdown EXIT
 cat << "EOF">> .tmux.conf
 set -ga terminal-overrides ',xterm*:smcup@:rmcup@'
 set -g history-limit 100000
-set -g mouse on
+set -g set-clipboard on
 bind -n PageUp copy-mode -eu
+# mouse OFF on purpose: with mouse tracking on, tmux grabs drag-selection and                                                                                         
+# the browser can't keep a stable highlight, so native select + right-click-Copy                                                                                      
+# fails. Off → browser does native selection (stays highlighted, right-click Copy                                                                                     
+# works). History scrolling is still available via the PageUp binding below.                                                                                          
+set -g mouse off
 EOF
 
 chown -R claude:claude .tmux.conf
