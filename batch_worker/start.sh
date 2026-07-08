@@ -27,16 +27,16 @@ fi
 
 # Route traffic to ScienceData over the internal network.
 # Resolve all fully qualified silo names to local addresses - this in order to allow proper SSL handshake and client certificate auth
-grep 10.2.0.13 /etc/hosts || echo "10.2.0.13 sciencedata.dk" >> /etc/hosts
-grep 10.2.0.14 /etc/hosts || echo "10.2.0.14 silo1.sciencedata.dk" >> /etc/hosts
-grep 10.2.0.15 /etc/hosts || echo "10.2.0.15 silo2.sciencedata.dk" >> /etc/hosts
-grep 10.2.0.16 /etc/hosts || echo "10.2.0.16 silo3.sciencedata.dk" >> /etc/hosts
-grep 10.2.0.17 /etc/hosts || echo "10.2.0.17 silo4.sciencedata.dk" >> /etc/hosts
-grep 10.2.0.18 /etc/hosts || echo "10.2.0.18 silo5.sciencedata.dk" >> /etc/hosts
-grep 10.2.0.19 /etc/hosts || echo "10.2.0.19 silo6.sciencedata.dk" >> /etc/hosts
-grep 10.2.0.20 /etc/hosts || echo "10.2.0.20 silo7.sciencedata.dk" >> /etc/hosts
-grep 10.2.0.21 /etc/hosts || echo "10.2.0.21 silo8.sciencedata.dk" >> /etc/hosts
-grep 10.2.0.22 /etc/hosts || echo "10.2.0.22 silo9.sciencedata.dk" >> /etc/hosts
+grep ' sciencedata.dk' /etc/hosts || echo "10.2.0.13 sciencedata.dk" >> /etc/hosts
+grep ' silo1.sciencedata.dk' /etc/hosts || echo "10.2.0.14 silo1.sciencedata.dk" >> /etc/hosts
+grep ' silo2.sciencedata.dk' /etc/hosts || echo "10.2.0.15 silo2.sciencedata.dk" >> /etc/hosts
+grep ' silo3.sciencedata.dk' /etc/hosts || echo "10.2.0.16 silo3.sciencedata.dk" >> /etc/hosts
+grep ' silo4.sciencedata.dk' /etc/hosts || echo "10.2.0.17 silo4.sciencedata.dk" >> /etc/hosts
+grep ' silo5.sciencedata.dk' /etc/hosts || echo "10.2.0.18 silo5.sciencedata.dk" >> /etc/hosts
+grep ' silo6.sciencedata.dk' /etc/hosts || echo "10.2.0.19 silo6.sciencedata.dk" >> /etc/hosts
+grep ' silo7.sciencedata.dk' /etc/hosts || echo "10.2.0.20 silo7.sciencedata.dk" >> /etc/hosts
+grep ' silo8.sciencedata.dk' /etc/hosts || echo "10.2.0.21 silo8.sciencedata.dk" >> /etc/hosts
+grep ' silo9.sciencedata.dk' /etc/hosts || echo "10.2.0.22 silo9.sciencedata.dk" >> /etc/hosts
 
 # We don't need this entry. The server does - that's why it's propagated. Take it out.
 # (Gotta do it in two lines as sed -i will change the inode and not be allowed)
