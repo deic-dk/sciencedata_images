@@ -14,6 +14,9 @@ fi
 [[ -n $PUBLIC_HOME_SERVER ]] && echo "$PUBLIC_HOME_SERVER" >> /tmp/public_home_server
 [[ -n $SETUP_SCRIPT  && -f "$SETUP_SCRIPT" ]] && . "$SETUP_SCRIPT"
 
+# Nextcloud cronjob
+echo "*/5 * * * * www /usr/bin/php -f /var/www/nextcloud/cron.php >/dev/null 2>&1" > /etc/cron.d/nextcloud
+
 # For run_pod to set NFS_VOLUME_PATH requires setting the environment variable NFS_VOLUME_PATH (to "") in the YAML.
 # This may have been forgotten by the YAML author, so we fall back to using df.
 if [ -z "$NFS_VOLUME_PATH" ]; then
@@ -85,6 +88,28 @@ php /var/www/nextcloud/occ files:scan admin
 END
 
 ###
+
+# Outbound mail (invoices, notifications, resets). Needs MAIL_SMTPHOST, MAIL_SMTPNAME, MAIL_SMTPPASSWORD
+# set in the SETUP_SCRIPT pointed to in the web UI. SETUP_SCRIPT needs to be specified by it's full path
+# as seen from inside the pod, e.g. /var/www/setup.sh
+if [[ -n "$MAIL_SMTPHOST" ]]; then
+  sudo -u www \
+    MAIL_SMTPHOST="$MAIL_SMTPHOST" MAIL_SMTPPORT="${MAIL_SMTPPORT:-587}" \
+    MAIL_SMTPNAME="$MAIL_SMTPNAME" MAIL_SMTPPASSWORD="$MAIL_SMTPPASSWORD" \
+    MAIL_FROM_ADDRESS="${MAIL_FROM_ADDRESS:-no-reply}" MAIL_DOMAIN="${MAIL_DOMAIN:-sciencedata.dk}" \
+    bash <<'END'                                                            
+  O="php /var/www/nextcloud/occ"                                            
+  $O config:system:set mail_smtpmode     --value smtp                       
+  $O config:system:set mail_smtphost     --value "$MAIL_SMTPHOST"
+  $O config:system:set mail_smtpport     --value "$MAIL_SMTPPORT" --type integer
+  $O config:system:set mail_smtpsecure   --value tls
+  $O config:system:set mail_smtpauth     --value true --type boolean        
+  $O config:system:set mail_smtpname     --value "$MAIL_SMTPNAME"
+  $O config:system:set mail_smtppassword --value "$MAIL_SMTPPASSWORD"       
+  $O config:system:set mail_from_address --value "$MAIL_FROM_ADDRESS"
+  $O config:system:set mail_domain       --value "$MAIL_DOMAIN"             
+END                                  
+fi
 
 service cron start
 
