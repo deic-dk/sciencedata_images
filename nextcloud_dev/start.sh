@@ -87,6 +87,37 @@ php /var/www/nextcloud/occ app:disable dashboard
 php /var/www/nextcloud/occ files:scan admin
 END
 
+cat <<"EOF"> /etc/caddy/Caddyfile
+{
+	servers {
+		trusted_proxies static 10.2.12.1
+	}
+}
+
+:80 {
+	# Set this path to your site's directory.
+	root * /var/www/nextcloud
+
+	# files_picocms pretty URLs
+	@picocms path /sites /sites/* /users /users/*
+	rewrite @picocms /remote.php{uri}
+
+	# canonical public links: /shared/<token> -> NC share page (same as the Apache image rewrite)
+	@shared path_regexp shared ^/shared/([^/]+)/?$
+	redir @shared /index.php/s/{re.shared.1} 302
+
+	# Enable the static file server.
+	file_server
+
+	# Serve the PHP site through php-fpm.
+	php_fastcgi unix//run/php/php-fpm.sock
+
+	log {
+		output file /var/log/caddy.log
+	}
+}
+EOF
+
 ###
 
 # Outbound mail (invoices, notifications, resets). Needs MAIL_SMTPHOST, MAIL_SMTPNAME, MAIL_SMTPPASSWORD

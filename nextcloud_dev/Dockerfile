@@ -22,7 +22,7 @@ RUN apt update && apt install -y rsync file sqlite3 php-gmp php-bcmath
 
 #RUN curl -L -o /tmp/nextcloud.tar.gz https://silo2.sciencedata.dk/public/kubefiles_public/nextcloud-33.0.2.tar.gz
 
-RUN sed -i 's|root \* /var/www|root * /var/www/nextcloud|' /etc/caddy/Caddyfile
+#RUN sed -i 's|root \* /var/www|root * /var/www/nextcloud|' /etc/caddy/Caddyfile
 
 ADD start.sh /usr/local/sbin/start.sh
 RUN chmod +x /usr/local/sbin/start.sh
