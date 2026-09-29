@@ -66,7 +66,7 @@ ADD Caddyfile /etc/caddy/Caddyfile
 ADD index.php /var/lib/caddy/index.php
 ADD start.sh /usr/local/sbin/start.sh
 RUN chmod +x /usr/local/sbin/start.sh
-RUN rmdir /var/log/caddy && touch /var/log/caddy.log && chown www:www /var/log/caddy.log
+RUN rmdir /var/log/caddy && touch /var/log/caddy.log && chown www:www /var/lib/caddy/index.php /var/log/caddy.log
 
 # Configure ssh access
 RUN echo "alias ls='ls --color=auto'" >> .bashrc && \
