@@ -121,11 +121,18 @@ RUN apt update && apt install -y wget git libgl1-mesa-glx && \
 USER $NB_UID
 
 # Install Python and other dependencies with Conda
-RUN bash -c "source /home/sciencedata/miniconda3/bin/activate && conda install python=${PYTHON_VERSION} -y && \
-conda install -c nvidia/label/cuda-12.1.1 cuda-toolkit -y  && \
-conda config --add channels pytorch && \
-conda install -c pytorch -c nvidia pytorch torchvision torchaudio pytorch-cuda=12.1 'pytorch-lightning' -y && \
-conda install matplotlib  scipy ffmpeg -y"
+RUN bash -c "source /home/sciencedata/miniconda3/bin/activate && \
+conda update -n base -c defaults conda -y && \
+conda install python=${PYTHON_VERSION}"
+
+RUN bash -c "source /home/sciencedata/miniconda3/bin/activate && \
+conda install -c nvidia/label/cuda-12.1.1 cuda-toolkit -y"
+
+RUN bash -c "source /home/sciencedata/miniconda3/bin/activate \
+ && pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 \
+ && pip install --no-cache-dir pytorch-lightning \
+ && conda install -y matplotlib scipy ffmpeg \
+ && conda clean -afy"
 
 ###########################
 # Jupyter
