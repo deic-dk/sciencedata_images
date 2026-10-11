@@ -156,7 +156,26 @@ USER $NB_UID
 ENV PATH=$PATH:/home/$NB_USER/.local/bin
 RUN echo "PATH=$PATH:/home/$NB_USER/.local/bin" >> /home/$NB_USER/.bashrc
 
-RUN pip install --no-cache-dir seaborn tensorboard vllm transformers -U
+# PyTorch for the Python the Jupyter kernel runs (system python3, packages in ~/.local).
+# Pinned to the CUDA 12.1 build: our GPUs (GTX 1080 Ti, Pascal, compute capability 6.1;
+# driver 555 = CUDA 12.5) cannot run the CUDA 13 builds that an unpinned install now
+# pulls in - torch then reports "NVIDIA driver too old" and runs on the CPU only.
+# Verified on worker1: torch 2.5.1+cu121 sees the GPU and runs on it.
+# (vllm is not installed: it needs compute capability >= 7.0 and pulls in the newest torch.)
+ARG TORCH_VERSION=2.5.1
+ARG TORCHVISION_VERSION=0.20.1
+ARG TORCHAUDIO_VERSION=2.5.1
+RUN pip install --no-cache-dir torch==${TORCH_VERSION} torchvision==${TORCHVISION_VERSION} \
+    torchaudio==${TORCHAUDIO_VERSION} --index-url https://download.pytorch.org/whl/cu121
+
+# Keep that torch for every later pip install - in this build and in users' notebooks
+# (e.g. "%pip install pytorch-lightning" would otherwise replace it with a CUDA 13 build).
+# A user who really wants another torch can run pip with PIP_CONSTRAINT= .
+RUN printf "torch==${TORCH_VERSION}\ntorchvision==${TORCHVISION_VERSION}\ntorchaudio==${TORCHAUDIO_VERSION}\n" \
+    > /home/$NB_USER/.torch-constraints.txt
+ENV PIP_CONSTRAINT=/home/$NB_USER/.torch-constraints.txt
+
+RUN pip install --no-cache-dir seaborn tensorboard transformers pytorch-lightning
 
 RUN pip install --no-cache-dir jupyter matplotlib jupyter_http_over_ws -U
 RUN pip install --no-cache-dir --upgrade notebook==6.4.12
