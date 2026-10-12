@@ -30,11 +30,18 @@ export DST_NAME=owncloud.db-dev-$mount_dir.gz
 
 export NC_VERSION=34.0.0rc1
 
+shutting_down=""
 function gracefulShutdown {
+  [[ -n "$shutting_down" ]] && return
+  shutting_down=1
   echo "Shutting down!"
+  if [[ ! -f /tmp/nc_restored ]]; then
+    echo "no restore at start - not uploading (it would replace the backup with an empty state)"
+    return
+  fi
   killall caddy
   cd /tmp
-  gzip owncloud.db
+  gzip -f owncloud.db
   curl --insecure --upload owncloud.db.gz https://sciencedata/files/$DST_NAME
 }
 
@@ -76,11 +83,20 @@ sed -i -E "s|'overwrite.cli.url' => 'https://kube.sciencedata.dk:[0-9]+'|'overwr
 sed -i -E "s|'overwritehost' => 'kube.sciencedata.dk:[0-9]+'|'overwritehost' => 'kube.sciencedata.dk:HTTPS_PORT'|g" /var/www/nextcloud/config/config.php
 sed -i "s|HTTPS_PORT|$HTTPS_PORT|g" /var/www/nextcloud/config/config.php
 
-for i in 1 2 3 4 5 6; do
+# Restore: keep trying while the server is unreachable; 404 = first pod, nothing to
+# restore. Nothing is uploaded at shutdown unless /tmp/nc_restored exists.
+for i in \`seq 1 30\`; do
 	sleep 10
-	status=`curl --connect-timeout 120 -I --insecure https://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print $2}'`
+	status=\`curl --connect-timeout 120 -I --silent --insecure https://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print \$2}'\`
 	echo "Getting DB https://sciencedata/files/$DST_NAME \$i --> \$status"
-	curl -L -o /tmp/owncloud.db.gz --insecure https://sciencedata/files/$DST_NAME && gunzip /tmp/owncloud.db.gz && cp -a /tmp/owncloud.db /tmp/owncloud.db.bk && [[ -s /tmp/owncloud.db ]] && sed -i -E "s|( *)('loglevel' => 1,)|\1'installed' => true,\n\1\2|" /var/www/nextcloud/config/config.php && break
+	[[ -z "\$status" ]] && continue
+	if [[ "\$status" -ge 400 ]]; then
+		# 404 = nothing to restore, but only if the server knows this pod (owner lookup cache): HEAD on the folder tells the two apart
+		folder=\`curl -I --silent --insecure https://sciencedata/files/ | grep ^HTTP | awk '{print \$2}'\`
+		[[ "\$status" == 404 && "\$folder" == 2* ]] && { touch /tmp/nc_restored; break; }
+		continue
+	fi
+	curl -L -o /tmp/owncloud.db.gz --insecure --fail https://sciencedata/files/$DST_NAME && gunzip /tmp/owncloud.db.gz && cp -a /tmp/owncloud.db /tmp/owncloud.db.bk && [[ -s /tmp/owncloud.db ]] && sed -i -E "s|( *)('loglevel' => 1,)|\1'installed' => true,\n\1\2|" /var/www/nextcloud/config/config.php && { touch /tmp/nc_restored; break; }
 done
 
 php /var/www/nextcloud/occ app:disable dashboard
@@ -139,7 +155,7 @@ if [[ -n "$MAIL_SMTPHOST" ]]; then
   $O config:system:set mail_smtppassword --value "$MAIL_SMTPPASSWORD"       
   $O config:system:set mail_from_address --value "$MAIL_FROM_ADDRESS"
   $O config:system:set mail_domain       --value "$MAIL_DOMAIN"             
-END                                  
+END
 fi
 
 service cron start
@@ -149,6 +165,13 @@ service $phpfpm start
 ln -s `basename $(ls /run/php/php*-fpm.sock)` /run/php/php-fpm.sock
 
 export HOSTNAME
-trap gracefulShutdown EXIT
+# Kubernetes sends SIGTERM to this script (PID 1) and kills the container
+# terminationGracePeriodSeconds later (default 30 s - set it in the pod YAML).
+# Trapping TERM and waiting on dropbear in the background runs the hook at once;
+# the guard in gracefulShutdown keeps the call after wait from running it twice.
+trap gracefulShutdown TERM INT
 /usr/bin/caddy --config /etc/caddy/Caddyfile start
-/usr/sbin/dropbear -p 22 -W 65536 -F -E
+/usr/sbin/dropbear -p 22 -W 65536 -F -E &
+wait $!
+# dropbear ended by itself: run the hook before the container exits
+gracefulShutdown

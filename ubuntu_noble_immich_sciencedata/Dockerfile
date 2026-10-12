@@ -121,7 +121,11 @@ RUN mkdir -p /root/.local/bin && curl -O https://raw.githubusercontent.com/extis
 RUN cd immich/open-api/typescript-sdk && pnpm install --frozen-lockfile --force && pnpm run build
 RUN cd immich/web && NODE_OPTIONS="--max-old-space-size=4096" pnpm install --frozen-lockfile --force && pnpm run build
 RUN export PATH=$PATH:/root/.local/bin && cd immich/plugins && pnpm install --frozen-lockfile --force && pnpm run build
-RUN cd immich && cp -aL server/node_modules server/dist server/bin $APP/ && cp -a web/build $APP/www && cp -a server/src server/package.json pnpm-lock.yaml $APP/ && cp -a LICENSE $APP/ && cp -a i18n $APP/../ && mkdir -p $APP/corePlugin && cp -a plugins/dist $APP/corePlugin/ && cp -a plugins/manifest.json $APP/corePlugin/
+# sharp is installed in the SAME layer that creates $APP/node_modules: pnpm replaces
+# entries in node_modules by renaming directories, and overlayfs refuses to rename a
+# directory that lives in a lower image layer ("Invalid cross-device link", EXDEV).
+# In a later layer (install.sh, as it was) that is exactly what happens.
+RUN cd immich && cp -aL server/node_modules server/dist server/bin $APP/ && cp -a web/build $APP/www && cp -a server/src server/package.json pnpm-lock.yaml $APP/ && cp -a LICENSE $APP/ && cp -a i18n $APP/../ && mkdir -p $APP/corePlugin && cp -a plugins/dist $APP/corePlugin/ && cp -a plugins/manifest.json $APP/corePlugin/ && cd $APP && pnpm --dangerously-allow-all-builds install sharp && pnpm store prune
 
 RUN chown -R immich:immich $IMMICH_PATH
 

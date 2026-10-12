@@ -18,21 +18,6 @@ service cron start
 
 cd /tmp
 
-# Backup Postgresql each night
-echo "5 4 * * * root /usr/local/sbin/backup_postgresql.sh" > /etc/cron.d/mongodb
-
-cat <<"EOF">> /usr/local/sbin/backup_postgresql.sh
-#!/bin/bash
-cd /tmp
-service postgresql stop
-tar -cvzf /mnt/postgresql.tar.gz /mnt/postgresql
-curl --insecure --upload /mnt/postgresql.tar.gz https://sciencedata/files/postgresql.tar.gz
-rm /mnt/postgresql.tar.gz
-service postgresql start
-EOF
-
-chmod +x /usr/local/sbin/backup_postgresql.sh
-
 # Take out IPv6 entry from /etc/hosts
 sed -E "s|^([^\.]+\s+$hostname)|#\1|" /etc/hosts > /tmp/hosts
 cat /tmp/hosts > /etc/hosts
@@ -47,9 +32,16 @@ cat /etc/ssl/certs/ssl-cert-snakeoil.pem sciencedata_ca.pem > /etc/ssl/ca_certs.
 chown postgres:postgres /etc/ssl/ca_certs.pem
 
 # Get personal certficate/key from sciencedata
-sleep 10
-curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getcert |  jq -r .data.certificate > $MY_HOME/mycert.pem
-curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $MY_HOME/mykey.pem
+# The home server maps this pod to its owner only once it knows the pod (the
+# lookup is cached, negative answers too): a single request right after start can
+# get a 4xx. Retry until a certificate arrives, up to 5 minutes.
+for i in `seq 1 30`; do
+	curl --insecure --location-trusted --silent --fail https://$HOME_SERVER/remote.php/getcert | jq -r .data.certificate > $MY_HOME/mycert.pem 2>/dev/null
+	grep -q 'BEGIN CERTIFICATE' $MY_HOME/mycert.pem 2>/dev/null && break
+	sleep 10
+done
+grep -q 'BEGIN CERTIFICATE' $MY_HOME/mycert.pem 2>/dev/null || echo "WARNING: could not fetch the owner's certificate from https://$HOME_SERVER/remote.php/getcert"
+curl --insecure --location-trusted --silent --fail https://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $MY_HOME/mykey.pem
 chown $MY_USER:$MY_USER $MY_HOME/*.pem
 chmod go-rw $MY_USER:$MY_USER $MY_HOME/*.pem
 
@@ -65,11 +57,21 @@ service postgresql start
 export cn=`openssl x509 -in $MY_HOME/mycert.pem -noout -subject -nameopt compat | sed -E 's|.+/CN=(.+)/.+|\1|'`
 sudo su - postgres -c "createuser --superuser $cn"
 
+shutting_down=""
 function gracefulShutdown {
+  [[ -n "$shutting_down" ]] && return
+  shutting_down=1
   echo "Shutting down!"
   service postgresql stop
   echo "Down"
 }
 
-trap gracefulShutdown EXIT
-/usr/sbin/dropbear -p 22 -W 65536 -F -E
+# Kubernetes sends SIGTERM to this script (PID 1) and kills the container
+# terminationGracePeriodSeconds later (default 30 s - set it in the pod YAML).
+# Trapping TERM and waiting on dropbear in the background runs the hook at once;
+# the guard in gracefulShutdown keeps the call after wait from running it twice.
+trap gracefulShutdown TERM INT
+/usr/sbin/dropbear -p 22 -W 65536 -F -E &
+wait $!
+# dropbear ended by itself: run the hook before the container exits
+gracefulShutdown

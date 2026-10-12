@@ -44,20 +44,40 @@ sudo /etc/init.d/postgresql start
 ### Immich
 ##################
 
+shutting_down=""
 function gracefulShutdown {
+  [[ -n "$shutting_down" ]] && return
+  shutting_down=1
   echo "Shutting down!"
+  if [[ -z "$restored" ]]; then
+    echo "no restore at start - not uploading (it would replace the backup with an empty state)"
+    return
+  fi
   cd /var/lib/immich/home
   pg_dump -c immich | gzip > immich_data.sql.gz
   curl --insecure --upload immich_data.sql.gz https://sciencedata/files/$DST_NAME
 }
 
 # Re-establish DB
+# Restore: keep trying while the server is unreachable; 404 = first pod, nothing to
+# restore. Nothing is uploaded at shutdown unless this succeeded ($restored).
 cd /var/lib/immich/home
-for i in 1 2 3 4; do
+restored=""
+for i in `seq 1 30`; do
   status=`curl -I --silent --insecure https://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print $2}'`
-  [[ $status < 400 ]] && curl -L -o immich_data.sql.gz --insecure https://sciencedata/files/$DST_NAME && break
-  sleep 3
+  [[ -z "$status" ]] && { sleep 10; continue; }
+  if [[ "$status" -ge 400 ]]; then
+    # 404 means nothing to restore - but only if the server knows this pod: a pod
+    # that is not yet mapped to its owner (lookup cache on the home server) gets an
+    # error too. HEAD on the folder itself tells the two apart.
+    folder=`curl -I --silent --insecure https://sciencedata/files/ | grep ^HTTP | awk '{print $2}'`
+    [[ "$status" == 404 && "$folder" == 2* ]] && { restored="nothing to restore"; break; }
+    sleep 10; continue
+  fi
+  curl -L -o immich_data.sql.gz --insecure --fail https://sciencedata/files/$DST_NAME && { restored="restored"; break; }
+  sleep 10
 done
+echo "persistence: ${restored:-could not reach https://sciencedata/files/$DST_NAME - shutdown backup disabled}"
 if [ -e immich_data.sql.gz ]; then
 	gunzip immich_data.sql.gz
 	if [ -s immich_data.sql ]; then
@@ -95,7 +115,11 @@ set -a
 : "${IMMICH_MACHINE_LEARNING_URL=http://127.0.0.1:3003}"
 : "${REDIS_HOSTNAME=127.0.0.1}"
 
-trap gracefulShutdown EXIT
+# Kubernetes sends SIGTERM to this script (PID 1) and kills the container
+# terminationGracePeriodSeconds later (default 30 s - set it in the pod YAML).
+# Trapping TERM and waiting on dropbear in the background runs the hook at once;
+# the guard in gracefulShutdown keeps the call after wait from running it twice.
+trap gracefulShutdown TERM INT
 cd /var/lib/immich/app
 IMMICH_PORT=2283 node dist/main >& /tmp/immich.log &
 
@@ -121,5 +145,8 @@ gunicorn immich_ml.main:app \
 # Dropbear
 ################
 
-sudo /usr/sbin/dropbear -p 22 -W 65536 -F -E >& /tmp/dropbear.log
+sudo /usr/sbin/dropbear -p 22 -W 65536 -F -E >& /tmp/dropbear.log &
+wait $!
+# dropbear ended by itself: run the hook before the container exits
+gracefulShutdown
 

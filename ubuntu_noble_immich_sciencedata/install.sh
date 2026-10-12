@@ -30,7 +30,4 @@ rm cities500.zip
 ln -s $IMMICH_PATH/home/media/upload $APP/
 ln -s $IMMICH_PATH/home/media/upload $APP/machine-learning/
 
-# Install sharp
-cd $APP
-pnpm --dangerously-allow-all-builds install sharp
 

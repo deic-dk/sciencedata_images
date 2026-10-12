@@ -57,21 +57,46 @@ fi
 
 export DST_NAME=jellyfin_data-$mount_dir.tar.gz
 
+shutting_down=""
 function gracefulShutdown {
+  [[ -n "$shutting_down" ]] && return
+  shutting_down=1
   echo "Shutting down!"
+  if [[ -z "$restored" ]]; then
+    echo "no restore at start - not uploading (it would replace the backup with an empty state)"
+    return
+  fi
+  killall jellyfin; sleep 3
   cd /var/lib/jellyfin
   tar -cvzf /tmp/jellyfin_data.tar.gz data
   curl --insecure --upload /tmp/jellyfin_data.tar.gz https://sciencedata/files/$DST_NAME
 }
 
+# Restore: keep trying while the server is unreachable; 404 = first pod, nothing to
+# restore. Nothing is uploaded at shutdown unless this succeeded ($restored).
 cd /var/lib/jellyfin
-for i in 1 2 3 4; do
+restored=""
+for i in `seq 1 30`; do
   status=`curl -I --silent --insecure https://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print $2}'`
-  [[ $status < 400 ]] && curl -o jellyfin_data.tar.gz -L --insecure https://sciencedata/files/$DST_NAME && tar -xvzf jellyfin_data.tar.gz && break
+  [[ -z "$status" ]] && { sleep 10; continue; }
+  if [[ "$status" -ge 400 ]]; then
+    # 404 means nothing to restore - but only if the server knows this pod: a pod
+    # that is not yet mapped to its owner (lookup cache on the home server) gets an
+    # error too. HEAD on the folder itself tells the two apart.
+    folder=`curl -I --silent --insecure https://sciencedata/files/ | grep ^HTTP | awk '{print $2}'`
+    [[ "$status" == 404 && "$folder" == 2* ]] && { restored="nothing to restore"; break; }
+    sleep 10; continue
+  fi
+  curl -o jellyfin_data.tar.gz -L --insecure --fail https://sciencedata/files/$DST_NAME && tar -xvzf jellyfin_data.tar.gz && { restored="restored"; break; }
   sleep 10
 done
+echo "persistence: ${restored:-could not reach https://sciencedata/files/$DST_NAME - shutdown backup disabled}"
 
-trap gracefulShutdown EXIT
+# Kubernetes sends SIGTERM to this script (PID 1) and kills the container
+# terminationGracePeriodSeconds later (default 30 s - set it in the pod YAML).
+# Trapping TERM and waiting on dropbear in the background runs the hook at once;
+# the guard in gracefulShutdown keeps the call after wait from running it twice.
+trap gracefulShutdown TERM INT
 export PATH=$PATH:/usr/lib/jellyfin-ffmpeg
 exec jellyfin --datadir /var/lib/jellyfin/data --logdir /home/jellyfin --service &
 
@@ -79,4 +104,7 @@ exec jellyfin --datadir /var/lib/jellyfin/data --logdir /home/jellyfin --service
 # Dropbear
 ################
 
-/usr/sbin/dropbear -p 22 -W 65536 -F -E
+/usr/sbin/dropbear -p 22 -W 65536 -F -E &
+wait $!
+# dropbear ended by itself: run the hook before the container exits
+gracefulShutdown

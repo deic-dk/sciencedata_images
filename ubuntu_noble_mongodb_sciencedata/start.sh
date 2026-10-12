@@ -21,22 +21,6 @@ myip=`ip -4 address show dev eth0 | grep " inet " | sed -E 's| +inet ([0-9\.]+)+
 sed -i "s|bindIp: 127.0.0.1|bindIp: $myip,127.0.0.1|" /etc/mongod.conf
 cd /tmp
 
-# Backup MongoDB each night
-echo "5 3 * * * root /usr/local/sbin/backup_mongodb.sh" > /etc/cron.d/mongodb
-
-cat <<"EOF">> /usr/local/sbin/backup_mongodb.sh
-#!/bin/bash
-cd /tmp
-mongosh -u admin -p secret --eval 'db.shutdownServer()'
-killall mongod
-tar -cvzf /mnt/mongodb.tar.gz /mnt/mongodb
-curl --insecure --upload /mnt/mongodb.tar.gz https://sciencedata/files/mongodb.tar.gz
-rm /mnt/mongodb.tar.gz
-sudo -u mongodb mongod -f /etc/mongod.conf &
-EOF
-
-chmod +x /usr/local/sbin/backup_mongodb.sh
-
 cd
 # Create my own self-signed certificate
 openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout selfsigned_key.pem -out selfsigned_cert.pem -subj "/O=ScienceData/CN=`hostname`"
@@ -46,9 +30,16 @@ curl https://sciencedata.dk/my_ca_cert.pem -o sciencedata_ca.pem
 cat selfsigned_cert.pem sciencedata_ca.pem > /etc/ssl/ca_certs.pem
 chown mongodb /etc/ssl/mongodb_certkey.pem /etc/mongod.conf /etc/ssl/ca_certs.pem
 # Get personal certficate/key from sciencedata
-sleep 10
-curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getcert |  jq -r .data.certificate > $MY_HOME/mycert.pem
-curl --insecure --location-trusted https://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $MY_HOME/mykey.pem
+# The home server maps this pod to its owner only once it knows the pod (the
+# lookup is cached, negative answers too): a single request right after start can
+# get a 4xx. Retry until a certificate arrives, up to 5 minutes.
+for i in `seq 1 30`; do
+	curl --insecure --location-trusted --silent --fail https://$HOME_SERVER/remote.php/getcert | jq -r .data.certificate > $MY_HOME/mycert.pem 2>/dev/null
+	grep -q 'BEGIN CERTIFICATE' $MY_HOME/mycert.pem 2>/dev/null && break
+	sleep 10
+done
+grep -q 'BEGIN CERTIFICATE' $MY_HOME/mycert.pem 2>/dev/null || echo "WARNING: could not fetch the owner's certificate from https://$HOME_SERVER/remote.php/getcert"
+curl --insecure --location-trusted --silent --fail https://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $MY_HOME/mykey.pem
 cat $MY_HOME/mycert.pem $MY_HOME/mykey.pem > $MY_HOME/mycertkey.pem
 chown $MY_USER:$MY_USER $MY_HOME/*.pem
 
@@ -70,15 +61,25 @@ if [ -z "`ls /mnt/mongodb/WiredTiger 2>/dev/null`" ]; then
 	sudo -u mongodb killall mongod
 fi
 
+shutting_down=""
 function gracefulShutdown {
+  [[ -n "$shutting_down" ]] && return
+  shutting_down=1
   echo "Shutting down!"
   mongosh -u admin -p secret --eval "db.shutdownServer()"
   echo "Down"
 }
 
-trap gracefulShutdown EXIT
+# Kubernetes sends SIGTERM to this script (PID 1) and kills the container
+# terminationGracePeriodSeconds later (default 30 s - set it in the pod YAML).
+# Trapping TERM and waiting on dropbear in the background runs the hook at once;
+# the guard in gracefulShutdown keeps the call after wait from running it twice.
+trap gracefulShutdown TERM INT
 exec sudo -u mongodb  GLIBC_TUNABLES=glibc.pthread.rseq=0 numactl --interleave=all mongod -f /etc/mongod.conf &
 
 
 export HOSTNAME
-/usr/sbin/dropbear -p 22 -W 65536 -F -E
+/usr/sbin/dropbear -p 22 -W 65536 -F -E &
+wait $!
+# dropbear ended by itself: run the hook before the container exits
+gracefulShutdown

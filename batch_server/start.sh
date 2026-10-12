@@ -61,7 +61,12 @@ if [ -n "$SD_UID" -a -n "$HOME_SERVER" -a ! -s "$MY_PERSONAL_CERT_PATH/userkey_u
 		i=$(( i + 1 ))
 	done
 	if [ -s "$SSL_KEY_UNENC" ]; then
-		curl --insecure https://$HOME_SERVER/remote.php/getcert | jq -r .data.certificate > $HOME/.gridfactory/usercert.pem
+		# Retry: the home server may not have mapped this pod to its owner yet (lookup cache)
+		for i in `seq 1 30`; do
+			curl --insecure --silent --fail https://$HOME_SERVER/remote.php/getcert | jq -r .data.certificate > $HOME/.gridfactory/usercert.pem 2>/dev/null
+			grep -q 'BEGIN CERTIFICATE' $HOME/.gridfactory/usercert.pem 2>/dev/null && break
+			sleep 10
+		done
 		# Encrypt the key
 		openssl rsa -des3 -in .gridfactory/userkey_unenc.pem -passin "pass:" -passout "pass:grid" > $HOME/.gridfactory/userkey.pem
 	fi
