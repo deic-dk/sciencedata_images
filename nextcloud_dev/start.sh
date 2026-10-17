@@ -14,6 +14,35 @@ fi
 [[ -n $PUBLIC_HOME_SERVER ]] && echo "$PUBLIC_HOME_SERVER" >> /tmp/public_home_server
 [[ -n $SETUP_SCRIPT  && -f "$SETUP_SCRIPT" ]] && . "$SETUP_SCRIPT"
 
+# The shutdown hook is installed FIRST: kubernetes sends SIGTERM to this script
+# (PID 1), and a signal that arrives while start.sh is still in its start-up loops
+# (restore, certificate fetch, install) must stop the pod too - PID 1 ignores a
+# signal it has no handler for, and the pod would then run on until the grace
+# period kills it. Variables the hook uses are empty until set below; harmless.
+shutting_down=""
+function gracefulShutdown {
+  [[ -n "$shutting_down" ]] && return
+  shutting_down=1
+  echo "Shutting down!"
+  if [[ ! -f /tmp/nc_restored ]]; then
+    echo "no restore at start - not uploading (it would replace the backup with an empty state)"
+    return
+  fi
+  killall caddy
+  cd /tmp
+  gzip -f owncloud.db
+  curl --insecure --upload owncloud.db.gz https://sciencedata/files/$DST_NAME
+  # Ends the script here, also when the signal arrives while start.sh is still
+  # running (otherwise start.sh would go on to the end before the pod could stop)
+  exit 0
+}
+# Kubernetes sends SIGTERM to this script (PID 1) and kills the container
+# terminationGracePeriodSeconds later (default 30 s - set it in the pod YAML).
+# Trapping TERM and waiting on dropbear in the background runs the hook at once;
+# the guard in gracefulShutdown keeps the call after wait from running it twice.
+trap gracefulShutdown TERM INT
+
+
 # Nextcloud cronjob
 echo "*/5 * * * * www /usr/bin/php -f /var/www/nextcloud/cron.php >/dev/null 2>&1" > /etc/cron.d/nextcloud
 
@@ -28,22 +57,8 @@ fi
 
 export DST_NAME=owncloud.db-dev-$mount_dir.gz
 
-export NC_VERSION=34.0.0rc1
+export NC_VERSION=34.0.2
 
-shutting_down=""
-function gracefulShutdown {
-  [[ -n "$shutting_down" ]] && return
-  shutting_down=1
-  echo "Shutting down!"
-  if [[ ! -f /tmp/nc_restored ]]; then
-    echo "no restore at start - not uploading (it would replace the backup with an empty state)"
-    return
-  fi
-  killall caddy
-  cd /tmp
-  gzip -f owncloud.db
-  curl --insecure --upload owncloud.db.gz https://sciencedata/files/$DST_NAME
-}
 
 ###
 # Nextcloud stuff
@@ -87,12 +102,12 @@ sed -i "s|HTTPS_PORT|$HTTPS_PORT|g" /var/www/nextcloud/config/config.php
 # restore. Nothing is uploaded at shutdown unless /tmp/nc_restored exists.
 for i in \`seq 1 30\`; do
 	sleep 10
-	status=\`curl --connect-timeout 120 -I --silent --insecure https://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print \$2}'\`
+	status=\`curl --connect-timeout 120 --max-time 150 -I --silent --insecure https://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print \$2}'\`
 	echo "Getting DB https://sciencedata/files/$DST_NAME \$i --> \$status"
 	[[ -z "\$status" ]] && continue
 	if [[ "\$status" -ge 400 ]]; then
 		# 404 = nothing to restore, but only if the server knows this pod (owner lookup cache): HEAD on the folder tells the two apart
-		folder=\`curl -I --silent --insecure https://sciencedata/files/ | grep ^HTTP | awk '{print \$2}'\`
+		folder=\`curl -X PROPFIND -H 'Depth: 0' --silent --insecure --max-time 30 -o /dev/null -w '%{http_code}' https://sciencedata/files/\`
 		[[ "\$status" == 404 && "\$folder" == 2* ]] && { touch /tmp/nc_restored; break; }
 		continue
 	fi
@@ -165,11 +180,6 @@ service $phpfpm start
 ln -s `basename $(ls /run/php/php*-fpm.sock)` /run/php/php-fpm.sock
 
 export HOSTNAME
-# Kubernetes sends SIGTERM to this script (PID 1) and kills the container
-# terminationGracePeriodSeconds later (default 30 s - set it in the pod YAML).
-# Trapping TERM and waiting on dropbear in the background runs the hook at once;
-# the guard in gracefulShutdown keeps the call after wait from running it twice.
-trap gracefulShutdown TERM INT
 /usr/bin/caddy --config /etc/caddy/Caddyfile start
 /usr/sbin/dropbear -p 22 -W 65536 -F -E &
 wait $!

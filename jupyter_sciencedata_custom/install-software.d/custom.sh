@@ -12,6 +12,12 @@ pip install astropy astroquery notebook git+https://github.com/radio-astro-tools
 
 # Python packages for riemann_book
 pip install clawpack
+# lmfit: the multilingual quantitative biologist's NLLS appendix; mpld3: riemann_book's interactive notebook
+pip install lmfit mpld3
+# rasterio: the Global Wind Atlas example notebook reads windows of the 250 m GeoTIFFs over HTTP (GDAL /vsicurl/)
+pip install rasterio
+# biopython: the Sparse Neighbor Joining example notebook builds a tree from the streamed distance matrix
+pip install biopython
 
 # MATLAB
 LD_LIBRARY_PATH=/usr/local/software/MATLAB_R2025b/bin/glnxa64 pip install matlab matlabengine
@@ -113,6 +119,7 @@ else
   # For jupyter_server<2.11, grab version 1.0 of jupyter_sciencedata
   git clone --branch 1.0 https://github.com/deic-dk/jupyter_sciencedata.git
 fi
+
 pip install jupyter_sciencedata/
 
 echo "from jupyter_sciencedata import JupyterScienceData" >> /etc/jupyter/jupyter_notebook_config.py

@@ -14,6 +14,23 @@ fi
 [[ -n $PUBLIC_HOME_SERVER ]] && echo "$PUBLIC_HOME_SERVER" >> /tmp/public_home_server
 [[ -n $SETUP_SCRIPT  && -f "$SETUP_SCRIPT" ]] && . "$SETUP_SCRIPT"
 
+# The shutdown hook is installed FIRST: kubernetes sends SIGTERM to this script
+# (PID 1), and a signal that arrives while start.sh is still in its start-up loops
+# (restore, certificate fetch, install) must stop the pod too - PID 1 ignores a
+# signal it has no handler for, and the pod would then run on until the grace
+# period kills it. Variables the hook uses are empty until set below; harmless.
+shutting_down=""
+function gracefulShutdown {
+  [[ -n "$shutting_down" ]] && return
+  shutting_down=1
+  echo "Shutting down!"
+  /usr/local/sbin/claude_backup
+  kill $DROPBEAR_PID 2>/dev/null
+  exit 0
+}
+trap gracefulShutdown TERM INT
+
+
 export HOSTNAME
 
 # For run_pod to set NFS_VOLUME_PATH requires setting the environment variable NFS_VOLUME_PATH (to "") in the YAML.
@@ -45,8 +62,10 @@ BACKUP_URL="$BACKUP_URL"
 exec 9>/run/claude_backup.lock
 flock -w 900 9 || { echo "claude_backup: another backup is still running"; exit 1; }
 cd /home/claude || exit 1
+shopt -s nullglob; set -- .claude*; shopt -u nullglob
+[ \$# -gt 0 ] || { echo "claude_backup: nothing to save yet (claude has not been started)"; exit 0; }
 tmp=/tmp/claude_backup.\$\$.tar.gz
-tar --warning=no-file-changed -czf "\$tmp" .claude*
+tar --warning=no-file-changed -czf "\$tmp" "\$@"
 rc=\$?
 if [ \$rc -gt 1 ]; then echo "claude_backup: tar failed (\$rc)"; rm -f "\$tmp"; exit 1; fi
 if curl --insecure --silent --fail --upload-file "\$tmp" "\$BACKUP_URL"; then
@@ -72,7 +91,7 @@ service cron start
 cd /home/claude
 restored=""
 for i in `seq 1 30`; do
-  status=`curl -I --silent --insecure $BACKUP_URL | grep ^HTTP | awk '{print $2}'`
+  status=`curl -I --silent --insecure --max-time 30 $BACKUP_URL | grep ^HTTP | awk '{print $2}'`
   if [[ -z "$status" ]]; then
     sleep 10; continue
   fi
@@ -80,7 +99,7 @@ for i in `seq 1 30`; do
     # 404 means nothing to restore - but only if the server knows this pod: a pod
     # that is not yet mapped to its owner (lookup cache on the home server) gets an
     # error too. HEAD on the folder itself tells the two apart.
-    folder=`curl -I --silent --insecure https://sciencedata/files/ | grep ^HTTP | awk '{print $2}'`
+    folder=`curl -X PROPFIND -H 'Depth: 0' --silent --insecure --max-time 30 -o /dev/null -w '%{http_code}' https://sciencedata/files/`
     [[ "$status" == 404 && "$folder" == 2* ]] && { restored="nothing to restore"; break; }
     sleep 10; continue
   fi
@@ -103,16 +122,6 @@ chown -R claude:claude .claude* 2>/dev/null
 # it time (terminationGracePeriodSeconds) - the default 30 s is not enough for
 # tar + upload of a large .claude. Running dropbear in the background and
 # waiting on it makes the trap fire at once instead of after dropbear exits.
-shutting_down=""
-function gracefulShutdown {
-  [[ -n "$shutting_down" ]] && return
-  shutting_down=1
-  echo "Shutting down!"
-  /usr/local/sbin/claude_backup
-  kill $DROPBEAR_PID 2>/dev/null
-  exit 0
-}
-trap gracefulShutdown TERM INT
 
 # Web terminal: ttyd served under a secret base-path = a
 # capability URL, fronted by the master's per-pod TLS Caddy. tmux keeps the
