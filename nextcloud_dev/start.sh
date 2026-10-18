@@ -94,6 +94,8 @@ touch /var/log/nextcloud.log && chown www:www /var/log/nextcloud.log
 sudo -u www HTTPS_PORT=$HTTPS_PORT DST_NAME=$DST_NAME bash<<END
 export HTTPS_PORT
 sed -i -E "s|(0 => 'localhost',)|\1 1 => 'kube.sciencedata.dk:HTTPS_PORT',|g" /var/www/nextcloud/config/config.php
+# 'sciencedata' is the Host header the users' pods send (their /etc/hosts aliases HOME_SERVER = this pod's address to it)
+grep -q "'sciencedata'," /var/www/nextcloud/config/config.php || sed -i -E "s|(0 => 'localhost',)|\1 9 => 'sciencedata',|" /var/www/nextcloud/config/config.php
 sed -i -E "s|'overwrite.cli.url' => 'https://kube.sciencedata.dk:[0-9]+'|'overwrite.cli.url' => 'https://kube.sciencedata.dk:HTTPS_PORT'|g" /var/www/nextcloud/config/config.php
 sed -i -E "s|'overwritehost' => 'kube.sciencedata.dk:[0-9]+'|'overwritehost' => 'kube.sciencedata.dk:HTTPS_PORT'|g" /var/www/nextcloud/config/config.php
 sed -i "s|HTTPS_PORT|$HTTPS_PORT|g" /var/www/nextcloud/config/config.php
