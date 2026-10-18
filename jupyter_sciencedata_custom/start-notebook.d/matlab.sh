@@ -18,7 +18,7 @@ sudo -u $NB_USER -E bash<<"END"
   # First check if we're a DTU user
   user_domain=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\2|'`
   user_name=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\1|'`
-  if [[ "$user_domain" != "dtu.dk" || "$user_name" == "$SD_UI" || "$user_name" == "" ]]; then
+  if [[ "$user_domain" != "dtu.dk" || "$user_name" == "$SD_UID" || "$user_name" == "" ]]; then
     echo "Only DTU users are allowed to use MATLAB"
     exit 0
   fi
@@ -26,6 +26,13 @@ sudo -u $NB_USER -E bash<<"END"
   grep LM_LICENSE_FILE ~/.bashrc >& /dev/null || echo "export LM_LICENSE_FILE=$MATLAB_LICENSE_PORT@$MATLAB_LICENSE_SERVER" >> ~/.bashrc
   sudo ln -s "$MATLAB_SOFTWARE_DIR/bin/matlab" /usr/local/bin/matlab
   pip install matlab_kernel
+  # The engine's shared objects drag in MATLAB's own (old) libstdc++ and libexpat by
+  # explicit path; if they are loaded before conda's, every later Python extension
+  # that needs the newer ones fails (sqlite3 -> "CXXABI_1.3.15 not found", pyexpat ->
+  # "XML_SetHashSalt16Bytes"). Importing those stdlib modules first puts conda's
+  # libraries in the process before `import matlab.engine` (first line of kernel.py).
+  grep -q 'ScienceData: load conda' /opt/conda/lib/python*/site-packages/matlab_kernel/kernel.py || \
+    sed -i "1i import sqlite3, pyexpat, zlib, ssl, ctypes, lzma, bz2  # ScienceData: load conda's libraries before MATLAB's engine loads its own old copies" /opt/conda/lib/python*/site-packages/matlab_kernel/kernel.py
   sed -i -r "s|(import __version__)|\1\nos.environ['LM_LICENSE_FILE'] = \"$MATLAB_LICENSE_PORT@$MATLAB_LICENSE_SERVER\"\n|" /opt/conda/lib/python*/site-packages/matlab_kernel/kernel.py
   #sudo /opt/conda/bin/python -m matlab_kernel install
   cd "$MATLAB_SOFTWARE_DIR/extern/engines/python"

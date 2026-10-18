@@ -35,7 +35,7 @@ sudo -u $NB_USER -E bash<<"END"
 		if [ -z "$user_name" ]; then
 			user_domain=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\2|'`
 			user_name=`echo $SD_UID | sed -E 's|^([^@]+)@([^@]+)$|\1|'`
-			if [[ "$user_domain" != "dtu.dk" || "$user_name" == "$SD_UI" || "$user_name" == "" ]]; then
+			if [[ "$user_domain" != "dtu.dk" || "$user_name" == "$SD_UID" || "$user_name" == "" ]]; then
 				echo "Only DTU users are allowed to use Mathematica"
 				exit 0
 			fi

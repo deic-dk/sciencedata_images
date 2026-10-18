@@ -1,5 +1,5 @@
-# Build command: docker build -t sciencedata/jupyter_sciencedata_tensorflow .
-# Push command: docker push sciencedata/jupyter_sciencedata_tensorflow
+# Build command: docker build -t sciencedata/jupyter_sciencedata_tensorflow:2.15 -t sciencedata/jupyter_sciencedata_tensorflow .
+# Push command: docker push sciencedata/jupyter_sciencedata_tensorflow; docker push sciencedata/jupyter_sciencedata_tensorflow:2.15
 # Run command: docker run -p 8443:443 -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key sciencedata/jupyter_sciencedata_tensorflow
 # Run command: docker run -p 8443:443 -p 4022:22 -e SSH_PUBLIC_KEY="`cat ~/.ssh/id_rsa.pub`" sciencedata/jupyter_sciencedata_tensorflow
 
@@ -149,7 +149,7 @@ RUN echo "PATH=$PATH:/home/$NB_USER/.local/bin" >> /home/$NB_USER/.bashrc
 
 RUN pip install --no-cache-dir jupyter matplotlib jupyter_http_over_ws -U
 RUN pip install --no-cache-dir --upgrade notebook==6.4.12
-RUN pip install --no-cache-dir jupyter-tensorboard
+RUN pip install --no-cache-dir --no-build-isolation jupyter-tensorboard
 RUN jupyter labextension enable jupyter_http_over_ws
 RUN python3 -m ipykernel.kernelspec
 
