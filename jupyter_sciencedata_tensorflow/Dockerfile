@@ -150,6 +150,10 @@ RUN echo "PATH=$PATH:/home/$NB_USER/.local/bin" >> /home/$NB_USER/.bashrc
 RUN pip install --no-cache-dir jupyter matplotlib jupyter_http_over_ws -U
 RUN pip install --no-cache-dir --upgrade notebook==6.4.12
 RUN pip install --no-cache-dir --no-build-isolation jupyter-tensorboard
+# TensorFlow Hub + Datasets for the TensorFlow example notebooks. tensorflow-metadata
+# must stay below 1.16: later releases are generated with protobuf 5, which cannot be
+# imported next to the protobuf 4 that TensorFlow 2.15 requires.
+RUN pip install --no-cache-dir tensorflow-hub==0.14.0 tensorflow-datasets==4.9.4 "tensorflow-metadata<1.16"
 RUN jupyter labextension enable jupyter_http_over_ws
 RUN python3 -m ipykernel.kernelspec
 
