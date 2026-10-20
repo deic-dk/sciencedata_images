@@ -10,6 +10,9 @@ if [[ ! -e /var/run/sciencedata_software ]]; then
   [[ -n "$HOME_SERVER" ]] && ( grep sciencedata /etc/hosts >& /dev/null || echo "$HOME_SERVER sciencedata" >> /etc/hosts )
   [[ -n "$HOME_SERVER" ]] && echo "*/5 * * * * root grep sciencedata /etc/hosts || echo \"$HOME_SERVER  sciencedata\" >> /etc/hosts" > /etc/cron.d/sciencedata_hosts
 fi
+# the heredoc must end with status 0: with no home server (guest pods) the lines above are false, and the
+# calling start script runs under set -e - a non-zero sudo bash here aborted it before Jupyter was launched
+true
 END
 
 export JULIA_DEPOT_PATH=/opt/julia

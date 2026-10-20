@@ -14,15 +14,14 @@ if [[ -n "$SCIENCEDATA_GUEST" ]]; then
   unset HOME_SERVER
   guest_dir="$HOME/work"
   mkdir -p "$guest_dir"
+  # this part of the script may run as root; the notebook user must own the directory
+  chown -R "${NB_USER:-sciencedata}" "$guest_dir" 2>/dev/null || true
   if [[ "$FILE" =~ ^https?:// ]]; then
-    # the file name: a files= query parameter (Nextcloud download links), else the last path element
-    if [[ "$FILE" == *files=* ]]; then
-      guest_name="${FILE##*files=}"; guest_name="${guest_name%%&*}"
-    else
-      guest_name=$(basename "${FILE%%\?*}")
-    fi
-    guest_name=$(printf '%b' "${guest_name//%/\\x}")
-    if curl -L --silent --fail --max-time 300 -o "$guest_dir/$guest_name" "$FILE"; then
+    # saved under the name the server sends (Content-Disposition, curl -J), else the
+    # last path element; curl reports which (-w filename_effective)
+    guest_name=$(cd "$guest_dir" && curl -L -J -O --silent --fail --max-time 300 -w '%{filename_effective}' "$FILE")
+    if [[ -n "$guest_name" && -s "$guest_dir/$guest_name" ]]; then
+      chown "${NB_USER:-sciencedata}" "$guest_dir/$guest_name" 2>/dev/null || true
       FILE="$guest_name"
     else
       echo "guest: could not fetch $FILE" >&2
@@ -54,6 +53,9 @@ else
   fi
   if [[ -n "$PREFERRED_DIR" ]]; then
     preferred_dir="$PREFERRED_DIR"
+  elif [[ -n "$ROOT_DIR" ]]; then
+    # jupyter_server >= 2 refuses a preferred_dir outside root_dir ("/ is outside root contents directory")
+    preferred_dir="$ROOT_DIR"
   fi
 fi
 

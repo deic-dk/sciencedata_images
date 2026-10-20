@@ -19,6 +19,9 @@ sudo bash<<END
 # Resolve sciencedata to the 10.2.0.0/24 address of the silo of the user
 [[ -n "$HOME_SERVER" ]] && ( grep sciencedata /etc/hosts >& /dev/null || echo "$HOME_SERVER sciencedata" >> /etc/hosts )
 [[ -n "$HOME_SERVER" ]] && echo "*/5 * * * * root grep sciencedata /etc/hosts || echo \"$HOME_SERVER  sciencedata\" >> /etc/hosts" > /etc/cron.d/sciencedata_hosts
+# the heredoc must end with status 0: with no home server (guest pods) the lines above are false, and the
+# calling start script runs under set -e - a non-zero sudo bash here aborted it before Jupyter was launched
+true
 END
 
 # A $FILE ending with a slash we use as notebook-dir.

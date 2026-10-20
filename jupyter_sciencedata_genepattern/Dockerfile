@@ -51,6 +51,11 @@ COPY requirements.txt.orig requirements.txt.orig
 
 RUN conda init bash
 
+# Fetched at every build and compared: when main of jupyter_sciencedata moves, the cache is
+# invalid from here on and the install script below clones the new commit (same trick as
+# in the tensorflow and pytorch Dockerfiles). Without it a rebuild reuses the cached layer
+# with the old package.
+ADD https://api.github.com/repos/deic-dk/jupyter_sciencedata/git/refs/heads/main /tmp/jupyter_sciencedata_main.json
 RUN /opt/bin/custom.sh
 
 USER root

@@ -29,9 +29,7 @@ function gracefulShutdown {
     return
   fi
   killall caddy
-  cd /tmp
-  gzip -f owncloud.db
-  curl --insecure --upload owncloud.db.gz ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME
+  /usr/local/sbin/backup_nextcloud_db.sh
   # Ends the script here, also when the signal arrives while start.sh is still
   # running (otherwise start.sh would go on to the end before the pod could stop)
   exit 0
@@ -139,6 +137,12 @@ cat <<"EOF"> /etc/caddy/Caddyfile
 	@shared path_regexp shared ^/shared/([^/]+)/?$
 	redir @shared /index.php/s/{re.shared.1} 302
 
+	# pods: /files and /grid are the legacy WebDAV of the logged-in user, served by
+	# files_sharding's legacydav.php - the same rewrite Apache does on the boxes.
+	# Caddy keeps the original URI in REQUEST_URI, which legacydav.php relies on.
+	@legacydav path /files /files/* /grid /grid/*
+	rewrite @legacydav /apps/files_sharding/appinfo/legacydav.php
+
 	# Enable the static file server.
 	file_server
 
@@ -175,6 +179,22 @@ if [[ -n "$MAIL_SMTPHOST" ]]; then
 END
 fi
 
+# The database lives in /tmp (SQLite must not sit on NFS); it is uploaded to the owner's
+# home server at a graceful shutdown AND every night, so a pod that is killed or a node
+# that is lost costs at most a day (a silo2 dev pod ran five months without a single
+# backup before this). An online copy via sqlite3 .backup, so the file is consistent.
+cat <<"EOF" > /usr/local/sbin/backup_nextcloud_db.sh
+#!/bin/bash
+# Upload a consistent copy of /tmp/owncloud.db as $DST_NAME to the owner's home server.
+[[ -f /tmp/nc_restored ]] || { echo "no restore at start - not uploading (it would replace the backup with an empty state)"; exit 0; }
+[[ -s /tmp/owncloud.db ]] || { echo "no database"; exit 0; }
+cd /tmp && rm -f owncloud.db.copy && sqlite3 owncloud.db ".backup owncloud.db.copy" && gzip -f owncloud.db.copy \
+  && curl --insecure --silent --fail --upload-file owncloud.db.copy.gz ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME \
+  && echo "$(date -Is) uploaded $DST_NAME" || echo "$(date -Is) upload of $DST_NAME FAILED"
+EOF
+chmod +x /usr/local/sbin/backup_nextcloud_db.sh
+echo "35 3 * * * root HOME_SERVER_PROTOCOL=${HOME_SERVER_PROTOCOL:-https} DST_NAME=$DST_NAME /usr/local/sbin/backup_nextcloud_db.sh >> /var/log/nextcloud_db_backup.log 2>&1" > /etc/cron.d/nextcloud_db_backup
+chmod 644 /etc/cron.d/nextcloud_db_backup
 service cron start
 
 phpfpm=`service --status-all 2>&1 | grep php | awk '{print $NF}'`

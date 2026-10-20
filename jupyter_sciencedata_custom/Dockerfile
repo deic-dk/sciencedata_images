@@ -36,6 +36,11 @@ RUN . /opt/install-software.d/julia.sh
 RUN . /opt/install-software.d/bash.sh
 RUN . /opt/install-software.d/root.sh
 RUN . /opt/install-software.d/r.sh
+# Fetched at every build and compared: when main of jupyter_sciencedata moves, the cache is
+# invalid from here on and the install script below clones the new commit (same trick as
+# in the tensorflow and pytorch Dockerfiles). Without it a rebuild reuses the cached layer
+# with the old package.
+ADD https://api.github.com/repos/deic-dk/jupyter_sciencedata/git/refs/heads/main /tmp/jupyter_sciencedata_main.json
 RUN . /opt/install-software.d/custom.sh
 
 USER root
