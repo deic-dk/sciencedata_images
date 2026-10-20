@@ -59,12 +59,12 @@ chown postgres:postgres /etc/ssl/ca_certs.pem
 # lookup is cached, negative answers too): a single request right after start can
 # get a 4xx. Retry until a certificate arrives, up to 5 minutes.
 for i in `seq 1 30`; do
-	curl --insecure --location-trusted --silent --fail https://$HOME_SERVER/remote.php/getcert | jq -r .data.certificate > $MY_HOME/mycert.pem 2>/dev/null
+	curl --insecure --location-trusted --silent --fail ${HOME_SERVER_PROTOCOL:-https}://$HOME_SERVER/remote.php/getcert | jq -r .data.certificate > $MY_HOME/mycert.pem 2>/dev/null
 	grep -q 'BEGIN CERTIFICATE' $MY_HOME/mycert.pem 2>/dev/null && break
 	sleep 10
 done
-grep -q 'BEGIN CERTIFICATE' $MY_HOME/mycert.pem 2>/dev/null || echo "WARNING: could not fetch the owner's certificate from https://$HOME_SERVER/remote.php/getcert"
-curl --insecure --location-trusted --silent --fail https://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $MY_HOME/mykey.pem
+grep -q 'BEGIN CERTIFICATE' $MY_HOME/mycert.pem 2>/dev/null || echo "WARNING: could not fetch the owner's certificate from ${HOME_SERVER_PROTOCOL:-https}://$HOME_SERVER/remote.php/getcert"
+curl --insecure --location-trusted --silent --fail ${HOME_SERVER_PROTOCOL:-https}://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $MY_HOME/mykey.pem
 chown $MY_USER:$MY_USER $MY_HOME/*.pem
 chmod go-rw $MY_USER:$MY_USER $MY_HOME/*.pem
 
@@ -77,7 +77,7 @@ fetch_dump() {
 		status=`curl -I --silent --insecure --max-time 30 $url | grep ^HTTP | awk '{print $2}'`
 		[[ -z "$status" ]] && { sleep 10; continue; }
 		if [[ "$status" -ge 400 ]]; then
-			folder=`curl -X PROPFIND -H 'Depth: 0' --silent --insecure --max-time 30 -o /dev/null -w '%{http_code}' https://sciencedata/files/`
+			folder=`curl -X PROPFIND -H 'Depth: 0' --silent --insecure --max-time 30 -o /dev/null -w '%{http_code}' ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/`
 			[[ "$status" == 404 && "$folder" == 2* ]] && { echo "no dump at $url - fresh database"; return 1; }
 			sleep 10; continue
 		fi
@@ -98,7 +98,7 @@ if mountpoint -q /mnt; then
 #!/bin/bash
 tmp=/tmp/postgresql-dump.$$.sql.gz
 if sudo -u postgres pg_dumpall | gzip > "$tmp" && [ -s "$tmp" ]; then
-	if curl --insecure --silent --fail --upload-file "$tmp" https://sciencedata/files/postgresql-dump.sql.gz; then
+	if curl --insecure --silent --fail --upload-file "$tmp" ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/postgresql-dump.sql.gz; then
 		echo "`date '+%F %T'` dump_postgresql: uploaded `stat -c %s "$tmp"` bytes"
 	else
 		echo "`date '+%F %T'` dump_postgresql: upload failed"
@@ -121,7 +121,7 @@ if [ -z "`ls /mnt/postgresql/16 2>/dev/null`" ]; then
 	fresh=yes
 fi
 service postgresql start
-if [ -n "$fresh" ] && mountpoint -q /mnt && fetch_dump https://sciencedata/files/postgresql-dump.sql.gz /tmp/restore.sql.gz; then
+if [ -n "$fresh" ] && mountpoint -q /mnt && fetch_dump ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/postgresql-dump.sql.gz /tmp/restore.sql.gz; then
 	sleep 5
 	gunzip -c /tmp/restore.sql.gz | sudo -u postgres psql -q postgres > /dev/null && echo "restored postgresql-dump.sql.gz"
 	rm -f /tmp/restore.sql.gz

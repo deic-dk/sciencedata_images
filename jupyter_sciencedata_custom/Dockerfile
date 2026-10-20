@@ -1,8 +1,8 @@
 # Copyright ScienceData team
 # Distributed under the terms of the Modified BSD License.
 
-# Build command: e.g docker build -t sciencedata/jupyter_sciencedata_custom:1.2 .
-# Push command: e.g docker push sciencedata/jupyter_sciencedata_custom:1.2
+# Build command: e.g docker build -t sciencedata/jupyter_sciencedata_custom -t sciencedata/jupyter_sciencedata_custom:3.1 .
+# Push command: e.g docker push sciencedata/jupyter_sciencedata_custom; docker push sciencedata/jupyter_sciencedata_custom:3.1
 # Run command: docker run -p 8080:80 -p 4022:22 sciencedata/jupyter_sciencedata_custom
 
 FROM sciencedata/jupyter_sciencedata

@@ -1,5 +1,5 @@
-# Build command: docker build -t sciencedata/jupyter_sciencedata_pytorch .
-# Push command: docker push sciencedata/jupyter_sciencedata_pytorch
+# Build command: docker build -t sciencedata/jupyter_sciencedata_pytorch -t sciencedata/jupyter_sciencedata_pytorch:1.0 .
+# Push command: docker push sciencedata/jupyter_sciencedata_pytorch; docker push sciencedata/jupyter_sciencedata_pytorch:1.0
 # Run command: docker run -p 8443:443 -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key sciencedata/jupyter_sciencedata_pytorch
 # Run command: docker run -p 8443:443 -p 4022:22 -e SSH_PUBLIC_KEY="`cat ~/.ssh/id_rsa.pub`" sciencedata/jupyter_sciencedata_pytorch
 #

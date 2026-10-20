@@ -26,7 +26,7 @@ cat <<"EOF"> /home/openbooks/bin/transmission-stop.sh
 killall transmission-cli
 find /home/openbooks/Downloads/ | grep -E '\.mkv$|\.mp4$|\.avi|\.divx|\.srt' | while read name; do
   encoded_name=`basename "$name" | tr -d '\n' | jq -sRr @uri`
-  curl --insecure --globoff --upload "$name" https://sciencedata/files/Movies/$encoded_name
+  curl --insecure --globoff --upload "$name" ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/Movies/$encoded_name
 done
 EOF
 

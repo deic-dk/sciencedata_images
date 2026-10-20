@@ -43,7 +43,7 @@ else
 fi
 
 export DST_NAME=claude-$mount_dir.tar.gz
-BACKUP_URL="https://sciencedata/files/$DST_NAME"
+BACKUP_URL="${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME"
 
 # Persistence: /home/claude/.claude* is saved to the owner's home folder every hour
 # and at shutdown, and restored when the pod starts. A backup cut short cannot do
@@ -99,7 +99,7 @@ for i in `seq 1 30`; do
     # 404 means nothing to restore - but only if the server knows this pod: a pod
     # that is not yet mapped to its owner (lookup cache on the home server) gets an
     # error too. HEAD on the folder itself tells the two apart.
-    folder=`curl -X PROPFIND -H 'Depth: 0' --silent --insecure --max-time 30 -o /dev/null -w '%{http_code}' https://sciencedata/files/`
+    folder=`curl -X PROPFIND -H 'Depth: 0' --silent --insecure --max-time 30 -o /dev/null -w '%{http_code}' ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/`
     [[ "$status" == 404 && "$folder" == 2* ]] && { restored="nothing to restore"; break; }
     sleep 10; continue
   fi

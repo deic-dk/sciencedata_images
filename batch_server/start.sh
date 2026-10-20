@@ -56,14 +56,14 @@ if [ -n "$SD_UID" -a -n "$HOME_SERVER" -a ! -s "$MY_PERSONAL_CERT_PATH/userkey_u
 	# ScienceData has a 30 seconds pods cache refresh cycle, so we try 4 times with 10 seconds in between each.
 	i=0
 	while [ ! -s "$SSL_KEY_UNENC" -a $i -lt 5 ]; do
-		curl --insecure https://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $HOME/.gridfactory/userkey_unenc.pem
+		curl --insecure ${HOME_SERVER_PROTOCOL:-https}://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $HOME/.gridfactory/userkey_unenc.pem
 		sleep 10
 		i=$(( i + 1 ))
 	done
 	if [ -s "$SSL_KEY_UNENC" ]; then
 		# Retry: the home server may not have mapped this pod to its owner yet (lookup cache)
 		for i in `seq 1 30`; do
-			curl --insecure --silent --fail https://$HOME_SERVER/remote.php/getcert | jq -r .data.certificate > $HOME/.gridfactory/usercert.pem 2>/dev/null
+			curl --insecure --silent --fail ${HOME_SERVER_PROTOCOL:-https}://$HOME_SERVER/remote.php/getcert | jq -r .data.certificate > $HOME/.gridfactory/usercert.pem 2>/dev/null
 			grep -q 'BEGIN CERTIFICATE' $HOME/.gridfactory/usercert.pem 2>/dev/null && break
 			sleep 10
 		done

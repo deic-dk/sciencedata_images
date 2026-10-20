@@ -30,7 +30,7 @@ function gracefulShutdown {
   fi
   cd /var/lib/immich/home
   pg_dump -c immich | gzip > immich_data.sql.gz
-  curl --insecure --upload immich_data.sql.gz https://sciencedata/files/$DST_NAME
+  curl --insecure --upload immich_data.sql.gz ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME
   # Ends the script here, also when the signal arrives while start.sh is still
   # running (otherwise start.sh would go on to the end before the pod could stop)
   exit 0
@@ -79,20 +79,20 @@ sudo /etc/init.d/postgresql start
 cd /var/lib/immich/home
 restored=""
 for i in `seq 1 30`; do
-  status=`curl -I --silent --insecure --max-time 30 https://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print $2}'`
+  status=`curl -I --silent --insecure --max-time 30 ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print $2}'`
   [[ -z "$status" ]] && { sleep 10; continue; }
   if [[ "$status" -ge 400 ]]; then
     # 404 means nothing to restore - but only if the server knows this pod: a pod
     # that is not yet mapped to its owner (lookup cache on the home server) gets an
     # error too. HEAD on the folder itself tells the two apart.
-    folder=`curl -X PROPFIND -H 'Depth: 0' --silent --insecure --max-time 30 -o /dev/null -w '%{http_code}' https://sciencedata/files/`
+    folder=`curl -X PROPFIND -H 'Depth: 0' --silent --insecure --max-time 30 -o /dev/null -w '%{http_code}' ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/`
     [[ "$status" == 404 && "$folder" == 2* ]] && { restored="nothing to restore"; break; }
     sleep 10; continue
   fi
-  curl -L -o immich_data.sql.gz --insecure --fail https://sciencedata/files/$DST_NAME && { restored="restored"; break; }
+  curl -L -o immich_data.sql.gz --insecure --fail ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME && { restored="restored"; break; }
   sleep 10
 done
-echo "persistence: ${restored:-could not reach https://sciencedata/files/$DST_NAME - shutdown backup disabled}"
+echo "persistence: ${restored:-could not reach ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME - shutdown backup disabled}"
 if [ -e immich_data.sql.gz ]; then
 	gunzip immich_data.sql.gz
 	if [ -s immich_data.sql ]; then

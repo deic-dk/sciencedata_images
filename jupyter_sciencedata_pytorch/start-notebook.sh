@@ -7,6 +7,32 @@ sudo ldconfig
 
 export HOME_SERVER
 
+# Guest pod (SCIENCEDATA_GUEST=1 from run_pod, anonymous "Run this notebook"): no home
+# server, the files live in a local work directory and nothing is kept. FILE is then a
+# URL (the notebook's public link), fetched into that directory at start.
+if [[ -n "$SCIENCEDATA_GUEST" ]]; then
+  unset HOME_SERVER
+  guest_dir="$HOME/work"
+  mkdir -p "$guest_dir"
+  if [[ "$FILE" =~ ^https?:// ]]; then
+    # the file name: a files= query parameter (Nextcloud download links), else the last path element
+    if [[ "$FILE" == *files=* ]]; then
+      guest_name="${FILE##*files=}"; guest_name="${guest_name%%&*}"
+    else
+      guest_name=$(basename "${FILE%%\?*}")
+    fi
+    guest_name=$(printf '%b' "${guest_name//%/\\x}")
+    if curl -L --silent --fail --max-time 300 -o "$guest_dir/$guest_name" "$FILE"; then
+      FILE="$guest_name"
+    else
+      echo "guest: could not fetch $FILE" >&2
+      FILE=""
+    fi
+  fi
+  ROOT_DIR="$guest_dir"
+  PREFERRED_DIR="$guest_dir"
+fi
+
 wrapper=""
 if [[ "${RESTARTABLE}" == "yes" ]]; then
   wrapper="run-one-constantly"

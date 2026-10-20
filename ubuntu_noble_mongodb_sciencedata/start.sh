@@ -57,19 +57,19 @@ chown mongodb /etc/ssl/mongodb_certkey.pem /etc/mongod.conf /etc/ssl/ca_certs.pe
 # lookup is cached, negative answers too): a single request right after start can
 # get a 4xx. Retry until a certificate arrives, up to 5 minutes.
 for i in `seq 1 30`; do
-	curl --insecure --location-trusted --silent --fail https://$HOME_SERVER/remote.php/getcert | jq -r .data.certificate > $MY_HOME/mycert.pem 2>/dev/null
+	curl --insecure --location-trusted --silent --fail ${HOME_SERVER_PROTOCOL:-https}://$HOME_SERVER/remote.php/getcert | jq -r .data.certificate > $MY_HOME/mycert.pem 2>/dev/null
 	grep -q 'BEGIN CERTIFICATE' $MY_HOME/mycert.pem 2>/dev/null && break
 	sleep 10
 done
-grep -q 'BEGIN CERTIFICATE' $MY_HOME/mycert.pem 2>/dev/null || echo "WARNING: could not fetch the owner's certificate from https://$HOME_SERVER/remote.php/getcert"
-curl --insecure --location-trusted --silent --fail https://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $MY_HOME/mykey.pem
+grep -q 'BEGIN CERTIFICATE' $MY_HOME/mycert.pem 2>/dev/null || echo "WARNING: could not fetch the owner's certificate from ${HOME_SERVER_PROTOCOL:-https}://$HOME_SERVER/remote.php/getcert"
+curl --insecure --location-trusted --silent --fail ${HOME_SERVER_PROTOCOL:-https}://$HOME_SERVER/remote.php/getkey | jq -r .data.private_key > $MY_HOME/mykey.pem
 cat $MY_HOME/mycert.pem $MY_HOME/mykey.pem > $MY_HOME/mycertkey.pem
 chown $MY_USER:$MY_USER $MY_HOME/*.pem
 
 # Names in the owner's home folder matching $1 (PROPFIND; the old servers answer
 # no HEAD on a collection, PROPFIND they do).
 list_dumps() {
-	curl -X PROPFIND -H 'Depth: 1' --silent --insecure --max-time 30 https://sciencedata/files/ | grep -o -E '<d:href>[^<]*</d:href>' | sed -E 's|<d:href>.*/([^/]*)</d:href>|\1|' | grep -E "^$1$"
+	curl -X PROPFIND -H 'Depth: 1' --silent --insecure --max-time 30 ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/ | grep -o -E '<d:href>[^<]*</d:href>' | sed -E 's|<d:href>.*/([^/]*)</d:href>|\1|' | grep -E "^$1$"
 }
 # Fetch the newest dump from the owner's home folder into $1. Retries while the
 # home server does not know this pod yet (owner lookup cache); a 404 counts only
@@ -80,7 +80,7 @@ fetch_dump() {
 		status=`curl -I --silent --insecure --max-time 30 $url | grep ^HTTP | awk '{print $2}'`
 		[[ -z "$status" ]] && { sleep 10; continue; }
 		if [[ "$status" -ge 400 ]]; then
-			folder=`curl -X PROPFIND -H 'Depth: 0' --silent --insecure --max-time 30 -o /dev/null -w '%{http_code}' https://sciencedata/files/`
+			folder=`curl -X PROPFIND -H 'Depth: 0' --silent --insecure --max-time 30 -o /dev/null -w '%{http_code}' ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/`
 			[[ "$status" == 404 && "$folder" == 2* ]] && { echo "no dump at $url - fresh database"; return 1; }
 			sleep 10; continue
 		fi
@@ -121,7 +121,7 @@ for d in $dbs; do
 	fi
 	if [ "$UPLOAD" = "no" ]; then
 		echo "`date '+%F %T'` dump_mongodb: $d -> `stat -c %s "$tmp"` bytes (not uploaded, test)"
-	elif curl --insecure --silent --fail --upload-file "$tmp" "https://sciencedata/files/mongodb-dump-$d.archive.gz"; then
+	elif curl --insecure --silent --fail --upload-file "$tmp" "${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/mongodb-dump-$d.archive.gz"; then
 		echo "`date '+%F %T'` dump_mongodb: $d -> uploaded `stat -c %s "$tmp"` bytes as mongodb-dump-$d.archive.gz"
 	else
 		echo "`date '+%F %T'` dump_mongodb: upload of $d failed"; rc=1
@@ -146,7 +146,7 @@ if [ -z "`ls /mnt/mongodb/WiredTiger 2>/dev/null`" ]; then
 	# in the owner's home folder), if the disk is a mounted volume and dumps exist.
 	if mountpoint -q /mnt; then
 		for name in `list_dumps 'mongodb-dump-.*\.archive\.gz'`; do
-			if fetch_dump "https://sciencedata/files/$name" /tmp/restore.archive.gz; then
+			if fetch_dump "${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$name" /tmp/restore.archive.gz; then
 				mongorestore --quiet -u admin -p secret --authenticationDatabase admin --archive=/tmp/restore.archive.gz --gzip --drop && echo "restored $name"
 				rm -f /tmp/restore.archive.gz
 			fi

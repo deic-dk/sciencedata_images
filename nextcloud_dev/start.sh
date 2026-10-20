@@ -31,7 +31,7 @@ function gracefulShutdown {
   killall caddy
   cd /tmp
   gzip -f owncloud.db
-  curl --insecure --upload owncloud.db.gz https://sciencedata/files/$DST_NAME
+  curl --insecure --upload owncloud.db.gz ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME
   # Ends the script here, also when the signal arrives while start.sh is still
   # running (otherwise start.sh would go on to the end before the pod could stop)
   exit 0
@@ -104,16 +104,16 @@ sed -i "s|HTTPS_PORT|$HTTPS_PORT|g" /var/www/nextcloud/config/config.php
 # restore. Nothing is uploaded at shutdown unless /tmp/nc_restored exists.
 for i in \`seq 1 30\`; do
 	sleep 10
-	status=\`curl --connect-timeout 120 --max-time 150 -I --silent --insecure https://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print \$2}'\`
-	echo "Getting DB https://sciencedata/files/$DST_NAME \$i --> \$status"
+	status=\`curl --connect-timeout 120 --max-time 150 -I --silent --insecure ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print \$2}'\`
+	echo "Getting DB ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME \$i --> \$status"
 	[[ -z "\$status" ]] && continue
 	if [[ "\$status" -ge 400 ]]; then
 		# 404 = nothing to restore, but only if the server knows this pod (owner lookup cache): HEAD on the folder tells the two apart
-		folder=\`curl -X PROPFIND -H 'Depth: 0' --silent --insecure --max-time 30 -o /dev/null -w '%{http_code}' https://sciencedata/files/\`
+		folder=\`curl -X PROPFIND -H 'Depth: 0' --silent --insecure --max-time 30 -o /dev/null -w '%{http_code}' ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/\`
 		[[ "\$status" == 404 && "\$folder" == 2* ]] && { touch /tmp/nc_restored; break; }
 		continue
 	fi
-	curl -L -o /tmp/owncloud.db.gz --insecure --fail https://sciencedata/files/$DST_NAME && gunzip /tmp/owncloud.db.gz && cp -a /tmp/owncloud.db /tmp/owncloud.db.bk && [[ -s /tmp/owncloud.db ]] && sed -i -E "s|( *)('loglevel' => 1,)|\1'installed' => true,\n\1\2|" /var/www/nextcloud/config/config.php && { touch /tmp/nc_restored; break; }
+	curl -L -o /tmp/owncloud.db.gz --insecure --fail ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME && gunzip /tmp/owncloud.db.gz && cp -a /tmp/owncloud.db /tmp/owncloud.db.bk && [[ -s /tmp/owncloud.db ]] && sed -i -E "s|( *)('loglevel' => 1,)|\1'installed' => true,\n\1\2|" /var/www/nextcloud/config/config.php && { touch /tmp/nc_restored; break; }
 done
 
 php /var/www/nextcloud/occ app:disable dashboard
