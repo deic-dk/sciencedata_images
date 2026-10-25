@@ -62,6 +62,10 @@ fi
 # taking effect properly on the .local folder in the $NB_USER home dir.
 julia -e 'import Pkg; Pkg.update()'
 julia -e 'import Pkg; Pkg.add("HDF5"); Pkg.precompile();'
+# Plotting + example data for the notebook collection (demo-julia uses both).
+# Precompiled here: compiling Gadfly at run time needs more than the 2 GiB of a
+# medium pod (the precompile workers get OOM-killed and the kernel dies).
+julia -e 'import Pkg; Pkg.add(["Gadfly", "RDatasets"]); Pkg.precompile(); using Gadfly, RDatasets'
 #julia -e 'import Pkg; Pkg.add("IJulia"); Pkg.precompile();'
 julia -e "using Pkg; pkg\"add IJulia\"; pkg\"precompile\""
 

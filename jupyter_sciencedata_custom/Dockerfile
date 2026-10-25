@@ -36,6 +36,7 @@ RUN . /opt/install-software.d/julia.sh
 RUN . /opt/install-software.d/bash.sh
 RUN . /opt/install-software.d/root.sh
 RUN . /opt/install-software.d/r.sh
+RUN . /opt/install-software.d/octave.sh
 # Fetched at every build and compared: when main of jupyter_sciencedata moves, the cache is
 # invalid from here on and the install script below clones the new commit (same trick as
 # in the tensorflow and pytorch Dockerfiles). Without it a rebuild reuses the cached layer

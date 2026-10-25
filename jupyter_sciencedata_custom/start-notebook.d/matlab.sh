@@ -39,6 +39,20 @@ sudo -u $NB_USER -E bash<<"END"
   sudo "$PYTHON" setup.py install
   # Two kernels are installed: matlab and matlab_connect. Don't see why we need more than one way to do the same...
   jupyter kernelspec remove -y matlab_connect
+  # MATLAB R2025+ draws figures with web graphics (Qt/CEF) that need an X display even
+  # when nothing is shown: without one the engine dies on the first figure() and the
+  # kernel reports "EngineError: std::exception". Give the kernel a virtual display.
+  # (Figures also need memory: in a 2 GiB pod MATLAB is OOM-killed while drawing.)
+  if command -v Xvfb >/dev/null; then
+    pgrep -x Xvfb >/dev/null || (nohup Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp >/tmp/xvfb.log 2>&1 &)
+    kernel_json="$(jupyter kernelspec list --json | python -c 'import json,sys; print(json.load(sys.stdin)["kernelspecs"]["matlab"]["resource_dir"])')/kernel.json"
+    python - "$kernel_json" <<'PY'
+import json, sys
+k = sys.argv[1]; d = json.load(open(k))
+d.setdefault("env", {})["DISPLAY"] = ":99"
+json.dump(d, open(k, "w"), indent=1)
+PY
+  fi
 END
 fi
 
