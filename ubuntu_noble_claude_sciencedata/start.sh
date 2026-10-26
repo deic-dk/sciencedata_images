@@ -142,7 +142,11 @@ EOF
 chown -R claude:claude .tmux.conf
 
 HASH=$(tr -dc 'a-f0-9' </dev/urandom | head -c 48)
-ttyd -W -p 7681 -b "/$HASH" -t disableLeaveAlert=true \
+# macOptionClickForcesSelection: when the program in the terminal (e.g. claude's
+# interface) turns on mouse tracking, the browser's own selection stops working;
+# with this, Option-drag on a Mac (Shift-drag elsewhere) still selects text for
+# the system clipboard.
+ttyd -W -p 7681 -b "/$HASH" -t disableLeaveAlert=true -t macOptionClickForcesSelection=true \
   su - claude -c 'tmux new -A -s claude' &
 echo "$HASH/" > /tmp/URI
 

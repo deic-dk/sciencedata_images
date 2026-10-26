@@ -45,8 +45,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
 #RUN DEBIAN_FRONTEND=noninteractive apt-get -y install console-data
 
 # GridFactory debs
-RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridfactory_cli_linux_0_1_5.deb
-RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridworker_daemon_linux_0_1_5.deb
+RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridfactory_cli_linux_0_1_6.deb
+RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridworker_daemon_linux_0_1_6.deb
 
 #RUN dpkg --add-architecture i386
 RUN dpkg --force-all -i *.deb

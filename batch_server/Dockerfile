@@ -46,18 +46,25 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
 #RUN DEBIAN_FRONTEND=noninteractive apt-get -y install console-data
 
 #RUN echo "www:secret" | chpasswd
-RUN echo "www-data ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/www-data && chmod 0440 /etc/sudoers.d/www-data
+# No sudo for www-data: Apache and the GridFactory daemons run as www-data and
+# none of them needs it, so anything running as www-data must not become root.
 
 # GridFactory debs
 
-RUN curl -LO https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/mod_gacl_ubuntu_0_9_2.deb
-RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/mod_gridfactory_ubuntu_0_1_7.deb
-RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridfactory_server_linux_0_1_5.deb
-RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridfactory_cli_linux_0_1_5.deb
+RUN curl -LO https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/mod_gacl_ubuntu_0_9_3.deb
+RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/mod_gridfactory_ubuntu_0_1_8.deb
+RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridfactory_server_linux_0_1_6.deb
+RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridfactory_cli_linux_0_1_6.deb
 
 #RUN dpkg --add-architecture i386
 RUN dpkg --force-all -i *.deb
 
+# Apache: prefork MPM - mod_gacl evaluates access by changing the process's
+# working directory, which is only safe with one request per process. Recycle
+# children after 10000 connections so any slow growth stays bounded.
+RUN a2dismod -q mpm_event && a2enmod -q mpm_prefork && \
+  sed -i -E 's/^(\s*MaxConnectionsPerChild\s+)[0-9]+/\110000/' /etc/apache2/mods-available/mpm_prefork.conf && \
+  grep -q MaxConnectionsPerChild /etc/apache2/mods-available/mpm_prefork.conf
 ADD start.sh /usr/local/sbin/start.sh
 
 # Configure ssh access
