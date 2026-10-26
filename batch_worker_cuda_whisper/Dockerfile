@@ -15,6 +15,10 @@ RUN cp -a /root/.ssh /home/gridfactory/ && chown -R gridfactory:gridfactory /hom
 
 # We install ffmpeg, but the RTE MpegUtils uses /root/ffmpeg when available 
 RUN apt update && apt install -y python3-pip
+# PyTorch for CUDA 12.4: the worker node's driver (555) supports CUDA <= 12.5 and its
+# GTX 1080 Ti GPUs are Pascal (sm_61), which the current CUDA 13 builds no longer support.
+# Installed first, so whisper's torch dependency is already satisfied.
+RUN su gridfactory -c "pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124"
 RUN su gridfactory -c "pip install -U openai-whisper"
 RUN su gridfactory -c "pip install --pre ttconv"
 
