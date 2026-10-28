@@ -38,8 +38,8 @@ RUN DEBIAN_FRONTEND=noninteractive apt install -y locales \
     && locale-gen --purge en_US.UTF-8 en_DK.UTF-8 da_DK.UTF-8
 
 # GridFactory debs
-RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridfactory_cli_linux_0_1_6.deb
-RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridworker_daemon_linux_0_1_6.deb
+RUN curl -LO https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridfactory_cli_linux_0_1_7.deb
+RUN curl -LO https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridworker_daemon_linux_0_1_7.deb
 
 RUN dpkg --force-all -i *.deb
 
