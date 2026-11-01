@@ -30,7 +30,9 @@ function gracefulShutdown {
   fi
   cd /var/lib/immich/home
   pg_dump -c immich | gzip > immich_data.sql.gz
-  curl --insecure --upload immich_data.sql.gz ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME
+  curl --insecure --silent --max-time 30 -o /dev/null -X MKCOL ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/Containers/
+  curl --insecure --fail --upload immich_data.sql.gz $BACKUP_URL \
+    && [[ -n "$from_old_location" ]] && curl --insecure --silent --max-time 30 -o /dev/null -X DELETE $OLD_BACKUP_URL
   # Ends the script here, also when the signal arrives while start.sh is still
   # running (otherwise start.sh would go on to the end before the pod could stop)
   exit 0
@@ -56,6 +58,14 @@ fi
 
 export DST_NAME=immich_data-$mount_dir.sql.gz
 
+# The backup lives in the folder Containers in the owner's home folder - one folder
+# that is easy to recognize and to leave out of sync. Earlier images kept it at the
+# top level: if Containers has none, it is restored from there, and that top-level
+# copy is deleted after the first backup to Containers.
+BACKUP_URL=${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/Containers/$DST_NAME
+OLD_BACKUP_URL=${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME
+from_old_location=""
+
 ##################
 # Reddis
 ##################
@@ -79,7 +89,12 @@ sudo /etc/init.d/postgresql start
 cd /var/lib/immich/home
 restored=""
 for i in `seq 1 30`; do
-  status=`curl -I --silent --insecure --max-time 30 ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print $2}'`
+  status=`curl -I --silent --insecure --max-time 30 $BACKUP_URL | grep ^HTTP | awk '{print $2}'`
+  src=$BACKUP_URL
+  if [[ "$status" == 404 ]]; then
+    old_status=`curl -I --silent --insecure --max-time 30 $OLD_BACKUP_URL | grep ^HTTP | awk '{print $2}'`
+    [[ "$old_status" == 200 ]] && { status=200; src=$OLD_BACKUP_URL; }
+  fi
   [[ -z "$status" ]] && { sleep 10; continue; }
   if [[ "$status" -ge 400 ]]; then
     # 404 means nothing to restore - but only if the server knows this pod: a pod
@@ -89,10 +104,10 @@ for i in `seq 1 30`; do
     [[ "$status" == 404 && "$folder" == 2* ]] && { restored="nothing to restore"; break; }
     sleep 10; continue
   fi
-  curl -L -o immich_data.sql.gz --insecure --fail ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME && { restored="restored"; break; }
+  curl -L -o immich_data.sql.gz --insecure --fail $src && { restored="restored"; [[ "$src" == "$OLD_BACKUP_URL" ]] && from_old_location=1; break; }
   sleep 10
 done
-echo "persistence: ${restored:-could not reach ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME - shutdown backup disabled}"
+echo "persistence: ${restored:-could not reach $BACKUP_URL - shutdown backup disabled}"
 if [ -e immich_data.sql.gz ]; then
 	gunzip immich_data.sql.gz
 	if [ -s immich_data.sql ]; then

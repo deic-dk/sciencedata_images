@@ -100,10 +100,18 @@ sed -i "s|HTTPS_PORT|$HTTPS_PORT|g" /var/www/nextcloud/config/config.php
 
 # Restore: keep trying while the server is unreachable; 404 = first pod, nothing to
 # restore. Nothing is uploaded at shutdown unless /tmp/nc_restored exists.
+# The backup lives in the folder Containers in the owner's home folder. Earlier images
+# kept it at the top level: if Containers has none, it is restored from there, and that
+# top-level copy is deleted after the first backup to Containers (/tmp/nc_from_old_location).
 for i in \`seq 1 30\`; do
 	sleep 10
-	status=\`curl --connect-timeout 120 --max-time 150 -I --silent --insecure ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print \$2}'\`
-	echo "Getting DB ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME \$i --> \$status"
+	status=\`curl --connect-timeout 120 --max-time 150 -I --silent --insecure ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/Containers/$DST_NAME | grep ^HTTP | awk '{print \$2}'\`
+	src=${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/Containers/$DST_NAME
+	if [[ "\$status" == 404 ]]; then
+		old_status=\`curl --max-time 150 -I --silent --insecure ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME | grep ^HTTP | awk '{print \$2}'\`
+		[[ "\$old_status" == 200 ]] && { status=200; src=${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME; }
+	fi
+	echo "Getting DB \$src \$i --> \$status"
 	[[ -z "\$status" ]] && continue
 	if [[ "\$status" -ge 400 ]]; then
 		# 404 = nothing to restore, but only if the server knows this pod (owner lookup cache): HEAD on the folder tells the two apart
@@ -111,7 +119,7 @@ for i in \`seq 1 30\`; do
 		[[ "\$status" == 404 && "\$folder" == 2* ]] && { touch /tmp/nc_restored; break; }
 		continue
 	fi
-	curl -L -o /tmp/owncloud.db.gz --insecure --fail ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME && gunzip /tmp/owncloud.db.gz && cp -a /tmp/owncloud.db /tmp/owncloud.db.bk && [[ -s /tmp/owncloud.db ]] && sed -i -E "s|( *)('loglevel' => 1,)|\1'installed' => true,\n\1\2|" /var/www/nextcloud/config/config.php && { touch /tmp/nc_restored; break; }
+	curl -L -o /tmp/owncloud.db.gz --insecure --fail \$src && gunzip /tmp/owncloud.db.gz && cp -a /tmp/owncloud.db /tmp/owncloud.db.bk && [[ -s /tmp/owncloud.db ]] && sed -i -E "s|( *)('loglevel' => 1,)|\1'installed' => true,\n\1\2|" /var/www/nextcloud/config/config.php && { touch /tmp/nc_restored; [[ "\$src" == "${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME" ]] && touch /tmp/nc_from_old_location; break; }
 done
 
 php /var/www/nextcloud/occ app:disable dashboard
@@ -185,12 +193,22 @@ fi
 # backup before this). An online copy via sqlite3 .backup, so the file is consistent.
 cat <<"EOF" > /usr/local/sbin/backup_nextcloud_db.sh
 #!/bin/bash
-# Upload a consistent copy of /tmp/owncloud.db as $DST_NAME to the owner's home server.
+# Upload a consistent copy of /tmp/owncloud.db as Containers/$DST_NAME to the owner's
+# home server; after the first upload, delete a copy restored from the old top-level place.
 [[ -f /tmp/nc_restored ]] || { echo "no restore at start - not uploading (it would replace the backup with an empty state)"; exit 0; }
 [[ -s /tmp/owncloud.db ]] || { echo "no database"; exit 0; }
+base=${HOME_SERVER_PROTOCOL:-https}://sciencedata/files
 cd /tmp && rm -f owncloud.db.copy && sqlite3 owncloud.db ".backup owncloud.db.copy" && gzip -f owncloud.db.copy \
-  && curl --insecure --silent --fail --upload-file owncloud.db.copy.gz ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME \
-  && echo "$(date -Is) uploaded $DST_NAME" || echo "$(date -Is) upload of $DST_NAME FAILED"
+  || { echo "$(date -Is) copy of the database FAILED"; exit 1; }
+curl --insecure --silent --max-time 30 -o /dev/null -X MKCOL $base/Containers/
+if curl --insecure --silent --fail --upload-file owncloud.db.copy.gz $base/Containers/$DST_NAME; then
+  echo "$(date -Is) uploaded Containers/$DST_NAME"
+  if [[ -f /tmp/nc_from_old_location ]]; then
+    curl --insecure --silent --max-time 30 -o /dev/null -X DELETE $base/$DST_NAME && rm -f /tmp/nc_from_old_location
+  fi
+else
+  echo "$(date -Is) upload of Containers/$DST_NAME FAILED"
+fi
 EOF
 chmod +x /usr/local/sbin/backup_nextcloud_db.sh
 echo "35 3 * * * root HOME_SERVER_PROTOCOL=${HOME_SERVER_PROTOCOL:-https} DST_NAME=$DST_NAME /usr/local/sbin/backup_nextcloud_db.sh >> /var/log/nextcloud_db_backup.log 2>&1" > /etc/cron.d/nextcloud_db_backup

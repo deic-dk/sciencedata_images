@@ -43,7 +43,12 @@ else
 fi
 
 export DST_NAME=claude-$mount_dir.tar.gz
-BACKUP_URL="${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME"
+# The backup lives in the folder Containers in the owner's home folder - one folder
+# that is easy to recognize and to leave out of sync. Earlier images kept it at the
+# top level: if Containers has none, it is restored from there, and that top-level
+# copy is deleted after the first backup to Containers (/run/claude_from_old_location).
+BACKUP_URL="${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/Containers/$DST_NAME"
+OLD_BACKUP_URL="${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME"
 
 # Persistence: /home/claude/.claude* is saved to the owner's home folder every hour
 # and at shutdown, and restored when the pod starts. A backup cut short cannot do
@@ -58,6 +63,7 @@ BACKUP_URL="${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$DST_NAME"
 cat << EOF > /usr/local/sbin/claude_backup
 #!/bin/bash
 BACKUP_URL="$BACKUP_URL"
+OLD_BACKUP_URL="$OLD_BACKUP_URL"
 [ -f /run/claude_restored ] || { echo "claude_backup: no restore yet - not uploading"; exit 1; }
 exec 9>/run/claude_backup.lock
 flock -w 900 9 || { echo "claude_backup: another backup is still running"; exit 1; }
@@ -68,9 +74,13 @@ tmp=/tmp/claude_backup.\$\$.tar.gz
 tar --warning=no-file-changed -czf "\$tmp" "\$@"
 rc=\$?
 if [ \$rc -gt 1 ]; then echo "claude_backup: tar failed (\$rc)"; rm -f "\$tmp"; exit 1; fi
+curl --insecure --silent --max-time 30 -o /dev/null -X MKCOL "\${BACKUP_URL%/*}/"
 if curl --insecure --silent --fail --upload-file "\$tmp" "\$BACKUP_URL"; then
 	echo "claude_backup: \`date '+%F %T'\` saved \`stat -c %s "\$tmp"\` bytes to \$BACKUP_URL"
 	rm -f "\$tmp"
+	if [ -f /run/claude_from_old_location ]; then
+		curl --insecure --silent --max-time 30 -o /dev/null -X DELETE "\$OLD_BACKUP_URL" && rm -f /run/claude_from_old_location
+	fi
 else
 	echo "claude_backup: \`date '+%F %T'\` upload failed"; rm -f "\$tmp"; exit 1
 fi
@@ -92,6 +102,11 @@ cd /home/claude
 restored=""
 for i in `seq 1 30`; do
   status=`curl -I --silent --insecure --max-time 30 $BACKUP_URL | grep ^HTTP | awk '{print $2}'`
+  src=$BACKUP_URL
+  if [[ "$status" == 404 ]]; then
+    old_status=`curl -I --silent --insecure --max-time 30 $OLD_BACKUP_URL | grep ^HTTP | awk '{print $2}'`
+    [[ "$old_status" == 200 ]] && { status=200; src=$OLD_BACKUP_URL; }
+  fi
   if [[ -z "$status" ]]; then
     sleep 10; continue
   fi
@@ -103,8 +118,10 @@ for i in `seq 1 30`; do
     [[ "$status" == 404 && "$folder" == 2* ]] && { restored="nothing to restore"; break; }
     sleep 10; continue
   fi
-  if curl -L --silent --insecure --fail -o claude.tar.gz $BACKUP_URL && tar -xzf claude.tar.gz; then
-    restored="restored"; break
+  if curl -L --silent --insecure --fail -o claude.tar.gz $src && tar -xzf claude.tar.gz; then
+    restored="restored"
+    [[ "$src" == "$OLD_BACKUP_URL" ]] && touch /run/claude_from_old_location
+    break
   fi
   sleep 10
 done

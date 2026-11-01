@@ -70,7 +70,8 @@ chmod go-rw $MY_USER:$MY_USER $MY_HOME/*.pem
 
 # Fetch the newest dump from the owner's home folder into $1. Retries while the
 # home server does not know this pod yet (owner lookup cache); a 404 counts only
-# when the folder itself answers 2xx. Returns 0 with the file, 1 with nothing.
+# when the folder itself answers 2xx. Returns 0 with the file, 1 with nothing,
+# 2 when there is no such dump.
 fetch_dump() {
 	local url="$1" out="$2" status folder
 	for i in `seq 1 30`; do
@@ -78,7 +79,7 @@ fetch_dump() {
 		[[ -z "$status" ]] && { sleep 10; continue; }
 		if [[ "$status" -ge 400 ]]; then
 			folder=`curl -X PROPFIND -H 'Depth: 0' --silent --insecure --max-time 30 -o /dev/null -w '%{http_code}' ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/`
-			[[ "$status" == 404 && "$folder" == 2* ]] && { echo "no dump at $url - fresh database"; return 1; }
+			[[ "$status" == 404 && "$folder" == 2* ]] && { echo "no dump at $url"; return 2; }
 			sleep 10; continue
 		fi
 		curl -L --silent --insecure --fail -o "$out" $url && return 0
@@ -90,16 +91,24 @@ fetch_dump() {
 
 # Persistence (only with a disk type, i.e. when /mnt is a mounted volume; without a
 # type the database is ephemeral): a nightly pg_dumpall (consistent while running,
-# roles included) uploaded to the owner's home folder as postgresql-dump.sql.gz -
-# Nextcloud's file versioning keeps the history - and, on a first start with an
-# empty disk, the newest dump is restored into the fresh cluster.
+# roles included) uploaded to the owner's home folder as Containers/postgresql-dump.sql.gz
+# - Nextcloud's file versioning keeps the history - and, on a first start with an
+# empty disk, the newest dump is restored into the fresh cluster. Earlier images kept
+# the dump at the top level of the home folder: it is restored from there if Containers
+# has none, and deleted after the first upload to Containers (marker on the disk).
 if mountpoint -q /mnt; then
 	cat <<'EOF' > /usr/local/sbin/dump_postgresql.sh
 #!/bin/bash
 tmp=/tmp/postgresql-dump.$$.sql.gz
+base=${HOME_SERVER_PROTOCOL:-https}://sciencedata/files
+moved=/mnt/postgresql/.dump_in_Containers
 if sudo -u postgres pg_dumpall | gzip > "$tmp" && [ -s "$tmp" ]; then
-	if curl --insecure --silent --fail --upload-file "$tmp" ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/postgresql-dump.sql.gz; then
-		echo "`date '+%F %T'` dump_postgresql: uploaded `stat -c %s "$tmp"` bytes"
+	curl --insecure --silent --max-time 30 -o /dev/null -X MKCOL $base/Containers/
+	if curl --insecure --silent --fail --upload-file "$tmp" $base/Containers/postgresql-dump.sql.gz; then
+		echo "`date '+%F %T'` dump_postgresql: uploaded `stat -c %s "$tmp"` bytes to Containers"
+		if [ ! -e $moved ]; then
+			curl --insecure --silent --max-time 30 -o /dev/null -X DELETE $base/postgresql-dump.sql.gz && touch $moved
+		fi
 	else
 		echo "`date '+%F %T'` dump_postgresql: upload failed"
 	fi
@@ -121,7 +130,14 @@ if [ -z "`ls /mnt/postgresql/16 2>/dev/null`" ]; then
 	fresh=yes
 fi
 service postgresql start
-if [ -n "$fresh" ] && mountpoint -q /mnt && fetch_dump ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/postgresql-dump.sql.gz /tmp/restore.sql.gz; then
+restore_dump() {
+	local rc
+	fetch_dump ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/Containers/postgresql-dump.sql.gz /tmp/restore.sql.gz
+	rc=$?
+	[ $rc -eq 2 ] || return $rc
+	fetch_dump ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/postgresql-dump.sql.gz /tmp/restore.sql.gz
+}
+if [ -n "$fresh" ] && mountpoint -q /mnt && restore_dump; then
 	sleep 5
 	gunzip -c /tmp/restore.sql.gz | sudo -u postgres psql -q postgres > /dev/null && echo "restored postgresql-dump.sql.gz"
 	rm -f /tmp/restore.sql.gz

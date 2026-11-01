@@ -66,10 +66,10 @@ curl --insecure --location-trusted --silent --fail ${HOME_SERVER_PROTOCOL:-https
 cat $MY_HOME/mycert.pem $MY_HOME/mykey.pem > $MY_HOME/mycertkey.pem
 chown $MY_USER:$MY_USER $MY_HOME/*.pem
 
-# Names in the owner's home folder matching $1 (PROPFIND; the old servers answer
-# no HEAD on a collection, PROPFIND they do).
+# Names in the folder $2 of the owner's home folder (default: its top level) matching
+# $1 (PROPFIND; the old servers answer no HEAD on a collection, PROPFIND they do).
 list_dumps() {
-	curl -X PROPFIND -H 'Depth: 1' --silent --insecure --max-time 30 ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/ | grep -o -E '<d:href>[^<]*</d:href>' | sed -E 's|<d:href>.*/([^/]*)</d:href>|\1|' | grep -E "^$1$"
+	curl -X PROPFIND -H 'Depth: 1' --silent --insecure --max-time 30 ${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$2 | grep -o -E '<d:href>[^<]*</d:href>' | sed -E 's|<d:href>.*/([^/]*)</d:href>|\1|' | grep -E "^$1$"
 }
 # Fetch the newest dump from the owner's home folder into $1. Retries while the
 # home server does not know this pod yet (owner lookup cache); a 404 counts only
@@ -94,8 +94,10 @@ fetch_dump() {
 # Persistence (only with a disk type, i.e. when /mnt is a mounted volume; without a
 # type the database is ephemeral, as the image description says):
 #  - a nightly logical dump (mongodump --archive --gzip, consistent while running)
-#    as a dedicated backup user, uploaded to the owner's home folder as
-#    mongodb-dump.archive.gz - Nextcloud's file versioning keeps the history;
+#    as a dedicated backup user, uploaded to the folder Containers in the owner's
+#    home folder - Nextcloud's file versioning keeps the history. Earlier images
+#    kept the dumps at the top level: they are restored from there if Containers
+#    has none, and deleted after the first complete upload to Containers;
 #  - on a first start with an empty disk, the newest dump is restored (all
 #    databases except the users/roles of the admin db: the admin password is then
 #    the image default again and the backup user is recreated).
@@ -112,6 +114,9 @@ pem=$MY_HOME/mycertkey.pem
 [ -f "$pem" ] || { echo "`date '+%F %T'` dump_mongodb: no $pem"; exit 1; }
 dbs=`mongosh --quiet --tls --tlsCertificateKeyFile "$pem" --tlsAllowInvalidCertificates --authenticationMechanism MONGODB-X509 --authenticationDatabase '$external' --eval 'db.adminCommand({listDatabases:1, authorizedDatabases:true}).databases.map(d=>d.name).join("\n")' 2>/dev/null`
 [ -n "$dbs" ] || { echo "`date '+%F %T'` dump_mongodb: cannot list databases with $pem"; exit 1; }
+base=${HOME_SERVER_PROTOCOL:-https}://sciencedata/files
+moved=/mnt/mongodb/.dumps_in_Containers
+[ "$UPLOAD" = "no" ] || curl --insecure --silent --max-time 30 -o /dev/null -X MKCOL $base/Containers/
 rc=0
 for d in $dbs; do
 	case "$d" in admin|config|local) continue;; esac
@@ -121,13 +126,15 @@ for d in $dbs; do
 	fi
 	if [ "$UPLOAD" = "no" ]; then
 		echo "`date '+%F %T'` dump_mongodb: $d -> `stat -c %s "$tmp"` bytes (not uploaded, test)"
-	elif curl --insecure --silent --fail --upload-file "$tmp" "${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/mongodb-dump-$d.archive.gz"; then
-		echo "`date '+%F %T'` dump_mongodb: $d -> uploaded `stat -c %s "$tmp"` bytes as mongodb-dump-$d.archive.gz"
+	elif curl --insecure --silent --fail --upload-file "$tmp" "$base/Containers/mongodb-dump-$d.archive.gz"; then
+		echo "`date '+%F %T'` dump_mongodb: $d -> uploaded `stat -c %s "$tmp"` bytes as Containers/mongodb-dump-$d.archive.gz"
+		[ -e $moved ] || curl --insecure --silent --max-time 30 -o /dev/null -X DELETE "$base/mongodb-dump-$d.archive.gz"
 	else
 		echo "`date '+%F %T'` dump_mongodb: upload of $d failed"; rc=1
 	fi
 	rm -f "$tmp"
 done
+[ $rc -eq 0 ] && [ "$UPLOAD" != "no" ] && touch $moved
 exit $rc
 EOF
 	chmod 755 /usr/local/sbin/dump_mongodb.sh
@@ -143,10 +150,14 @@ if [ -z "`ls /mnt/mongodb/WiredTiger 2>/dev/null`" ]; then
 	# Add admin user
 	mongosh admin --eval "db.createUser({user: 'admin', pwd: 'secret', roles: ['readWrite', 'userAdminAnyDatabase', { role: 'root', db: 'admin' }]})"
 	# Restore the newest dumps (one archive per database, mongodb-dump-<db>.archive.gz
-	# in the owner's home folder), if the disk is a mounted volume and dumps exist.
+	# in Containers in the owner's home folder - or at its top level, where earlier
+	# images put them), if the disk is a mounted volume and dumps exist.
 	if mountpoint -q /mnt; then
-		for name in `list_dumps 'mongodb-dump-.*\.archive\.gz'`; do
-			if fetch_dump "${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$name" /tmp/restore.archive.gz; then
+		dir=Containers/
+		names=`list_dumps 'mongodb-dump-.*\.archive\.gz' $dir`
+		[ -n "$names" ] || { dir=""; names=`list_dumps 'mongodb-dump-.*\.archive\.gz'`; }
+		for name in $names; do
+			if fetch_dump "${HOME_SERVER_PROTOCOL:-https}://sciencedata/files/$dir$name" /tmp/restore.archive.gz; then
 				mongorestore --quiet -u admin -p secret --authenticationDatabase admin --archive=/tmp/restore.archive.gz --gzip --drop && echo "restored $name"
 				rm -f /tmp/restore.archive.gz
 			fi
