@@ -51,7 +51,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
 
 # GridFactory debs
 
-RUN curl -LO https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/mod_gacl_ubuntu_0_9_3.deb
+RUN curl -LO https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/mod_gacl_ubuntu_0_9_4.deb
 RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/mod_gridfactory_ubuntu_0_1_8.deb
 RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridfactory_server_linux_0_1_7.deb
 RUN curl -LO  https://sciencedata.dk/sites/frederik.orellana/blog/files/gridfactory-2024/gridfactory_cli_linux_0_1_7.deb
