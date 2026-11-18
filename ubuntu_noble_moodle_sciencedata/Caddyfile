@@ -1,0 +1,23 @@
+{
+	servers {
+		# kube's reverse proxy: trust its X-Forwarded-For, so Moodle sees the client address
+		trusted_proxies static 10.2.12.1
+	}
+}
+
+:80 {
+	# Since Moodle 5.1 only public/ is served; config.php and the code stay outside
+	root * /var/www/moodle/public
+
+	# Unmatched paths go to Moodle's router (r.php). split_path .php (php_fastcgi's
+	# default) keeps slash arguments such as /pluginfile.php/12/... working.
+	php_fastcgi unix//run/php/php-fpm.sock {
+		try_files {path} {path}/index.php /r.php
+	}
+
+	file_server
+
+	log {
+		output file /var/log/caddy.log
+	}
+}
