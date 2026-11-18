@@ -1,4 +1,4 @@
-# Build command: docker build -t sciencedata/batch_worker_cuda_whisper .
+# Build command: docker build --no-cache --pull -t sciencedata/batch_worker_cuda_whisper .
 # Push command: docker push sciencedata/batch_worker_cuda_whisper
 # Run command: docker run -p 4022:22 [-e ROOT_PASSWORD=my_root_password] -e SSH_PUBLIC_KEY=my_public_key sciencedata/batch_worker_cuda_whisper
 # Run command: docker run -p 4022:22 -e SSH_PUBLIC_KEY="`cat ~/.ssh/id_rsa.pub`" sciencedata/batch_worker_cuda_whisper
