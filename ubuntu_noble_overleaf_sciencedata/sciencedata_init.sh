@@ -23,6 +23,34 @@ if [[ -n "$SSH_PUBLIC_KEY" ]]; then
 	chmod 600 /root/.ssh/authorized_keys
 fi
 
+# ── Overleaf's processes may not reach private networks ──
+# Everything Overleaf runs - compiles included, and a project's latexmkrc is
+# Perl that a compile executes - runs as www-data. Inside a pod,
+# https://sciencedata/files/ serves the pod OWNER's files without a password,
+# and services on the cluster network trust it by address: in an instance
+# shared with a group, a member's compile could otherwise read the owner's
+# whole ScienceData. So www-data gets loopback (MongoDB, Redis, Overleaf's own
+# services) and the public internet only - plus DNS to the pod's name server.
+# root (the backups) is not restricted. No rule, no start.
+wwwuid=$(id -u www-data)
+ok=1
+for ns in $(awk '/^nameserver/ {print $2}' /etc/resolv.conf | grep -v :); do
+	iptables -A OUTPUT -m owner --uid-owner $wwwuid -d $ns -p udp --dport 53 -j ACCEPT || ok=""
+	iptables -A OUTPUT -m owner --uid-owner $wwwuid -d $ns -p tcp --dport 53 -j ACCEPT || ok=""
+done
+# Only NEW connections are refused: Overleaf's nginx runs as www-data too, and
+# its replies to kube's reverse proxy (a private address) must go out.
+for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 100.64.0.0/10; do
+	iptables -A OUTPUT -m owner --uid-owner $wwwuid -m conntrack --ctstate NEW -d $net -j REJECT || ok=""
+done
+for net in fc00::/7 fe80::/10; do
+	ip6tables -A OUTPUT -m owner --uid-owner $wwwuid -m conntrack --ctstate NEW -d $net -j REJECT 2>/dev/null
+done
+if [[ -z "$ok" ]]; then
+	echo "ERROR: could not restrict Overleaf's network access (iptables, NET_ADMIN) - refusing to start"
+	exit 1
+fi
+
 # Resolve sciencedata to the address of the owner's home server
 if [[ -n "$HOME_SERVER" ]]; then
 	grep -q " sciencedata$\|	sciencedata$" /etc/hosts || echo "$HOME_SERVER	sciencedata" >> /etc/hosts
@@ -93,9 +121,48 @@ if [[ -n "$HTTPS_PORT" ]]; then
 	echo -n "https://kube.sciencedata.dk:$HTTPS_PORT" > "$ENVDIR/OVERLEAF_SITE_URL"
 fi
 
-# ── Login with ScienceData accounts when the pod got an OpenID Connect client ──
-if [[ -n "$OVERLEAF_OIDC_CLIENT_ID" ]]; then
+# ── Login with ScienceData accounts, for a pod started for a group ──
+# The Containers app gives the pod a login client of the OpenID Connect
+# provider on the master, restricted to the group (its port is only known now,
+# so the pod asks). Asked as root - Overleaf's own user cannot reach the home
+# server - and authenticated as the pod's owner by the pod network's address
+# login. {"oidc": false}: started just for the owner, who keeps the local login.
+login=""
+if [[ -n "$HOME_SERVER" ]]; then
+	# 503 while the pod is not yet in the container list: ask again; 404: the
+	# Containers app here is too old to know about it - no need to wait
+	for i in $(seq 1 30); do
+		login=$(curl -s --insecure --max-time 20 -w '\n%{http_code}' "$PROTO://sciencedata/index.php/apps/user_pods/api/pod-login")
+		code=${login##*$'\n'}; login=${login%$'\n'*}
+		echo "$login" | grep -q '"oidc"' && break
+		login=""
+		[[ "$code" == 404 ]] && break
+		sleep 10
+	done
+fi
+if echo "$login" | grep -q '"oidc":true'; then
+	field() { echo "$login" | python3 -c "import json,sys; print(json.load(sys.stdin).get('$1',''))"; }
+	echo -n "$(field issuer)" > "$ENVDIR/OVERLEAF_OIDC_ISSUER"
+	echo -n "$(field authorization_url)" > "$ENVDIR/OVERLEAF_OIDC_AUTHORIZATION_URL"
+	echo -n "$(field token_url)" > "$ENVDIR/OVERLEAF_OIDC_TOKEN_URL"
+	echo -n "$(field userinfo_url)" > "$ENVDIR/OVERLEAF_OIDC_USER_INFO_URL"
+	echo -n "$(field logout_url)" > "$ENVDIR/OVERLEAF_OIDC_LOGOUT_URL"
+	echo -n "$(field client_id)" > "$ENVDIR/OVERLEAF_OIDC_CLIENT_ID"
+	echo -n "$(field client_secret)" > "$ENVDIR/OVERLEAF_OIDC_CLIENT_SECRET"
+	chmod 600 "$ENVDIR"/OVERLEAF_OIDC_CLIENT_SECRET
+	echo -n "profile email" > "$ENVDIR/OVERLEAF_OIDC_SCOPE"   # openid is added by Overleaf itself
+	# The owner (SD_UID) is Overleaf's administrator also when logging in this
+	# way - recognised by the login's user name (preferred_username = the
+	# ScienceData user ID), not the e-mail: outside DTU the two differ (the ID
+	# is e.g. 561649@au.dk, the e-mail firstname.lastname@au.dk).
+	if [[ -n "$SD_UID" ]]; then
+		echo -n "username" > "$ENVDIR/OVERLEAF_OIDC_IS_ADMIN_FIELD"
+		echo -n "$SD_UID" > "$ENVDIR/OVERLEAF_OIDC_IS_ADMIN_FIELD_VALUE"
+	fi
 	echo -n "oidc" > "$ENVDIR/EXTERNAL_AUTH"
+	echo "login: ScienceData accounts, members of group $(field group)"
+else
+	echo "login: Overleaf's own accounts (${login:-no answer from the Containers app})"
 fi
 
 exit 0

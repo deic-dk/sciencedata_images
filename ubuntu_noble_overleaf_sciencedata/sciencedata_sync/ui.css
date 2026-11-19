@@ -1,0 +1,39 @@
+/* ScienceData sync for Overleaf - the dialog (ui.js). Own, prefixed classes:
+   nothing here depends on Overleaf's styles. */
+.sds-launch {
+  position: fixed; right: 16px; bottom: 16px; z-index: 1000;
+  padding: 6px 14px; border: 0; border-radius: 16px;
+  background: #00679e; color: #fff; font: 600 13px/1.4 system-ui, sans-serif;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .3); cursor: pointer;
+}
+.sds-launch:hover, .sds-launch:focus-visible { background: #005281; outline: 2px solid #fff; outline-offset: -4px; }
+.sds-overlay {
+  position: fixed; inset: 0; z-index: 1001; background: rgba(0, 0, 0, .4);
+  display: flex; align-items: center; justify-content: center;
+}
+.sds-dialog {
+  width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto;
+  background: #fff; color: #1b222c; border-radius: 8px; padding: 16px 20px;
+  font: 14px/1.45 system-ui, sans-serif;
+}
+.sds-head { display: flex; align-items: center; justify-content: space-between; }
+.sds-head h2 { margin: 0; font-size: 18px; }
+.sds-close { border: 0; background: none; font-size: 24px; cursor: pointer; line-height: 1; }
+.sds-dialog section { border-top: 1px solid #dfe3e8; margin-top: 12px; padding-top: 8px; }
+.sds-dialog h3 { margin: 4px 0 8px; font-size: 15px; }
+.sds-dialog label { display: block; margin: 8px 0; }
+.sds-dialog select { max-width: 100%; }
+.sds-browser { border: 1px solid #dfe3e8; border-radius: 4px; padding: 6px 8px; max-height: 220px; overflow: auto; }
+.sds-browser ul { list-style: none; margin: 4px 0 0; padding: 0; }
+.sds-browser li { padding: 2px 4px; border-radius: 3px; cursor: default; }
+.sds-browser li.sds-folder { cursor: pointer; font-weight: 600; }
+.sds-browser li:hover { background: #eef2f6; }
+.sds-browser li.sds-selected { background: #d6e8f5; }
+.sds-path { font-size: 12px; color: #5d6879; }
+.sds-hint { font-size: 12px; color: #5d6879; margin: 4px 0; }
+.sds-primary {
+  margin-top: 6px; padding: 6px 16px; border: 0; border-radius: 16px;
+  background: #098842; color: #fff; font-weight: 600; cursor: pointer;
+}
+.sds-primary:disabled { opacity: .6; cursor: progress; }
+.sds-out pre { white-space: pre-wrap; font-size: 12px; background: #f4f5f6; padding: 6px; border-radius: 4px; max-height: 160px; overflow: auto; }
