@@ -15,8 +15,9 @@
 STATE=/var/lib/overleaf/data/sciencedata
 path=login
 
-# A pod started for a group logs everyone in with ScienceData (EXTERNAL_AUTH,
-# set by the init script), the owner becoming administrator by their user ID:
+# A pod with ScienceData login - started for a group, or just for the owner
+# (EXTERNAL_AUTH, set by the init script) - has the owner become administrator
+# by their user ID:
 # no local account, which - with an e-mail that differs from the ID, as at most
 # universities - would be a second account of the owner.
 if [[ "$(cat /etc/container_environment/EXTERNAL_AUTH 2>/dev/null)" == *oidc* ]]; then

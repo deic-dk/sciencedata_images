@@ -41,6 +41,10 @@ phpfpm=`service --status-all 2>&1 | grep php | awk '{print $NF}'`
 cat <<"EOF">/etc/php/8.3/fpm/conf.d/99-sciencedata-uploads.ini
 max_execution_time = 3600
 max_input_time = 3600
+; teachers upload course material through the ScienceData folder activity
+upload_max_filesize = 4G
+post_max_size = 4G
+max_file_uploads = 100
 EOF
 service $phpfpm start
 ln -s `basename $(ls /run/php/php*-fpm.sock)` /run/php/php-fpm.sock
@@ -75,6 +79,10 @@ else
   wwwroot="http://localhost"
 fi
 sed -i -E "s|^\\\$CFG->wwwroot *= *'[^']*';|\$CFG->wwwroot   = '$wwwroot';|" /var/www/moodle/config.php
+# Browsers keep cookies per host name, not per port: all pods on the host share
+# them. A session cookie of its own (MoodleSession<port>), or two Moodles - or
+# the one before this - log each other out ("Your session has timed out").
+sed -i -E "s|^\\\$CFG->sessioncookie *= *'[^']*';|\$CFG->sessioncookie = '${HTTPS_PORT:-}';|" /var/www/moodle/config.php
 
 ##################
 # PostgreSQL - in the pod, with Moodle preinstalled (see the Dockerfile)
@@ -148,10 +156,80 @@ if [[ "$restored" != "restored" ]]; then
   sudo -u www psql -q moodle -c "UPDATE mdl_user SET email='$adminemail' WHERE username='admin'"
   sudo -u www php /var/www/moodle/admin/cli/cfg.php --name=supportemail --set="$adminemail"
   sudo -u www php /var/www/moodle/admin/cli/cfg.php --name=siteidentifier --set="`head -c 24 /dev/urandom | md5sum | cut -c1-32`kube.sciencedata.dk"
-  # The password is shown once in the pod log and kept in the data root (the
-  # owner's ScienceData folder), never in the database backup
-  echo "$adminpass" > $datadir/admin_password.txt && chown www:www $datadir/admin_password.txt && chmod 600 $datadir/admin_password.txt
-  echo "New Moodle site. Log in at $wwwroot/ as admin; the password is in admin_password.txt in the mounted folder."
+fi
+
+# Logging in with ScienceData accounts: the Containers app gives the pod a
+# login client (its address is only known now, so the pod asks; authenticated
+# as its owner by the pod network's address login) - restricted to a group's
+# members, or for just the owner. The owner logs in as admin, no password.
+# 503: the pod is not yet in the container list - ask again; 404: the
+# Containers app is too old to know about it.
+login=""
+if [[ -n "$HOME_SERVER" ]]; then
+  for i in `seq 1 30`; do
+    login=$(curl -s --insecure --max-time 20 -w '\n%{http_code}' "${HOME_SERVER_PROTOCOL:-https}://sciencedata/index.php/apps/user_pods/api/pod-login?callback=/admin/oauth2callback.php")
+    code=${login##*$'\n'}; login=${login%$'\n'*}
+    echo "$login" | grep -q '"oidc"' && break
+    login=""
+    [[ "$code" == 404 ]] && break
+    sleep 10
+  done
+fi
+oidc=""
+rm -f /etc/cron.d/moodle_cohorts
+if echo "$login" | grep -q '"oidc":true' && echo "$login" | sudo -u www php /usr/local/sbin/sciencedata_oidc.php "$SD_UID"; then
+  oidc=1
+  # each group that logs in = a cohort with its members (accounts made in
+  # advance), kept up to date every 5 minutes - courses enrol a group by cohort sync
+  if echo "$login" | grep -q '"groups":\[[^]]'; then
+    sudo -u www php /usr/local/sbin/sciencedata_cohorts.php "$SD_UID"
+    echo "*/5 * * * * www php /usr/local/sbin/sciencedata_cohorts.php '$SD_UID' >/dev/null 2>&1" > /etc/cron.d/moodle_cohorts
+  fi
+else
+  sudo -u www php /usr/local/sbin/sciencedata_oidc.php --off
+  echo "login: Moodle's own accounts only (${login:-no answer from the Containers app})"
+fi
+
+# Course material: the folder 'Course material' in the owner's ScienceData files
+# - an ordinary folder (web interface, sync client; shared with the course's
+# group for the students) - in Moodle's file picker (repository_sciencedata),
+# read over WebDAV from inside the pod (the pod network's address login). Made
+# if missing, with a subfolder per login group, shared read-only with that group
+# (sciencedata_course_folders.php). And ScienceData share links in course text shown as previews,
+# players and cards (filter_sciencedata), for the ScienceData servers known
+# here: the login server and this pod's home server.
+sdbase="${HOME_SERVER_PROTOCOL:-https}://sciencedata"
+davurl="$sdbase/files"
+rm -f /etc/cron.d/moodle_transcode
+if [[ -n "$HOME_SERVER" ]]; then
+  echo "$login" | php /usr/local/sbin/sciencedata_course_folders.php "$sdbase"
+  # videos in the course folders that browsers cannot play as they are get a web
+  # version (.web/<name>.mp4) - one video at a time, at low priority
+  echo "*/5 * * * * www flock -n /tmp/sciencedata_transcode.lock php /usr/local/sbin/sciencedata_transcode.php '$davurl' >> /var/cache/moodle/transcode.log 2>&1" > /etc/cron.d/moodle_transcode
+fi
+sdhosts="sciencedata.dk"
+issuer=$(echo "$login" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("issuer",""))' 2>/dev/null)
+for u in "$issuer" "$PUBLIC_HOME_SERVER"; do
+  h=${u#*://}; h=${h%%/*}; h=${h%%:*}
+  [[ -n "$h" && " $sdhosts " != *" $h "* ]] && sdhosts="$sdhosts $h"
+done
+sudo -u www php /usr/local/sbin/sciencedata_setup.php "$sdhosts" "$davurl"
+
+# Without ScienceData login, until the administrator has logged in once (also
+# after a restart): the container's link on the Containers page (/tmp/URI, a
+# path after the pod's address) is Moodle's own "set password" page for admin -
+# a password-reset token, as in Moodle's "Forgotten your password?" mail. Moodle
+# lets such a token live 30 minutes; a cron job keeps it fresh until it is used
+# (Moodle then deletes it and logs admin in). Otherwise the link is the login page.
+uri="login/index.php"
+rm -f /etc/cron.d/moodle_admin_link
+if [[ -z "$oidc" && "$(sudo -u www psql -tAq moodle -c "SELECT currentlogin FROM mdl_user WHERE username='admin'")" == 0 ]]; then
+  token=`head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32`
+  sudo -u www psql -q moodle -c "DELETE FROM mdl_user_password_resets WHERE userid=(SELECT id FROM mdl_user WHERE username='admin')"
+  sudo -u www psql -q moodle -c "INSERT INTO mdl_user_password_resets (userid, timerequested, timererequested, token) SELECT id, extract(epoch FROM now())::bigint, 0, '$token' FROM mdl_user WHERE username='admin'"
+  echo "*/5 * * * * www psql -tAq moodle -c \"UPDATE mdl_user_password_resets SET timerequested=extract(epoch FROM now())::bigint WHERE token='$token'\" >/dev/null 2>&1" > /etc/cron.d/moodle_admin_link
+  uri="login/forgot_password.php?token=$token"
+  echo "Moodle: the administrator (admin) sets a password through the container's link on the Containers page."
 fi
 
 # An hourly backup too, so a pod that stops without a clean shutdown loses at most an hour
@@ -160,6 +238,8 @@ fi
 sudo -u www php /var/www/moodle/admin/cli/purge_caches.php
 
 /usr/bin/caddy --config /etc/caddy/Caddyfile start
+# the Containers page shows "Starting..." until this exists (catalog/wait-for-token)
+echo "$uri" > /tmp/URI
 
 /usr/sbin/dropbear -p 22 -W 65536 -F -E &
 wait $!

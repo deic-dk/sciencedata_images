@@ -16,7 +16,7 @@ ENV MOODLE_BRANCH=MOODLE_503_STABLE
 RUN echo "deb http://apt.postgresql.org/pub/repos/apt noble-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
     curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
 
-RUN DEBIAN_FRONTEND=noninteractive apt update && apt install -y postgresql-17 \
+RUN DEBIAN_FRONTEND=noninteractive apt update && apt install -y postgresql-17 ffmpeg \
     php-pgsql php-intl php-soap php-bcmath php-opcache php-readline sudo && \
     apt-get -y autoremove && apt-get -y clean && rm -rf /var/lib/apt/lists/*
 
@@ -35,7 +35,16 @@ RUN mkdir -p /var/cache/moodle/local /var/cache/moodle/temp /var/cache/moodle/ca
 
 ADD Caddyfile /etc/caddy/Caddyfile
 ADD config.php /var/www/moodle/config.php
-RUN chown www:www /var/www/moodle/config.php
+# ScienceData links in course text (notebook previews + Run, video players,
+# folder cards) - before the install below, so new sites have it
+COPY filter_sciencedata /var/www/moodle/public/filter/sciencedata
+# the owner's ScienceData folder 'Course material' in the file picker
+COPY repository_sciencedata /var/www/moodle/public/repository/sciencedata
+# the 'ScienceData folder' activity: a course folder on ScienceData, live, uploads straight there
+COPY mod_sciencedata /var/www/moodle/public/mod/sciencedata
+RUN chown www:www /var/www/moodle/config.php && \
+    chown -R www:www /var/www/moodle/public/filter/sciencedata /var/www/moodle/public/repository/sciencedata \
+      /var/www/moodle/public/mod/sciencedata
 
 # Install Moodle into the image, so that a new pod is ready in seconds. The database
 # lives in the image's PostgreSQL; the files of a fresh site go to /var/moodledata-seed,
@@ -51,6 +60,30 @@ RUN mkdir -p /var/moodledata-seed && chown www:www /var/moodledata-seed && \
     service postgresql stop && \
     sed -i "s|'/var/moodledata-seed'|'/var/moodledata'|" /var/www/moodle/config.php && \
     rm -rf /var/cache/moodle/local/* /var/cache/moodle/temp/* /var/cache/moodle/cache/*
+
+# Mail: Moodle (no SMTP host set) uses PHP's mail(), whose sendmail hands each
+# message to the owner's ScienceData server - which sends it as its no-reply
+# address, limited per owner. No mail credentials in the pod.
+ADD sciencedata_sendmail /usr/local/sbin/sciencedata_sendmail
+RUN chmod 755 /usr/local/sbin/sciencedata_sendmail && \
+    for d in /etc/php/*/fpm/conf.d /etc/php/*/cli/conf.d; do \
+      echo "sendmail_path = /usr/local/sbin/sciencedata_sendmail" > $d/99-sciencedata-mail.ini; \
+    done
+
+# Log in with ScienceData (OAuth 2 / OpenID Connect), configured at each start
+# (sciencedata_oidc.php); logins never linked to accounts by e-mail (oauth2_patch.sh)
+ADD oauth2_patch.sh /tmp/oauth2_patch.sh
+RUN sh /tmp/oauth2_patch.sh && rm /tmp/oauth2_patch.sh
+ADD sciencedata_oidc.php /usr/local/sbin/sciencedata_oidc.php
+# the login groups as cohorts, every 5 minutes (started by start.sh)
+ADD sciencedata_cohorts.php /usr/local/sbin/sciencedata_cohorts.php
+# course material from ScienceData in the file picker, and the links filter on (started by start.sh)
+ADD sciencedata_setup.php /usr/local/sbin/sciencedata_setup.php
+# 'Course material' and a subfolder per login group, shared with the group
+ADD sciencedata_course_folders.php /usr/local/sbin/sciencedata_course_folders.php
+# web versions of the videos in the course folders (ffmpeg, above; cron from start.sh)
+ADD sciencedata_transcode.php /usr/local/sbin/sciencedata_transcode.php
+RUN chmod 644 /usr/local/sbin/sciencedata_oidc.php /usr/local/sbin/sciencedata_cohorts.php /usr/local/sbin/sciencedata_setup.php
 
 ADD moodle_backup.sh /usr/local/sbin/moodle_backup.sh
 ADD start.sh /usr/local/sbin/start.sh

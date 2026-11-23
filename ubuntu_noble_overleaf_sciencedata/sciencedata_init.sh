@@ -119,6 +119,10 @@ chmod 700 "$STATE"
 # ── The public address, from the port kube's reverse proxy got for this pod ──
 if [[ -n "$HTTPS_PORT" ]]; then
 	echo -n "https://kube.sciencedata.dk:$HTTPS_PORT" > "$ENVDIR/OVERLEAF_SITE_URL"
+	# Browsers keep cookies per host name, not per port: all pods on the host
+	# share them. A session cookie of its own, or two Overleafs (or the one
+	# before this) log each other out.
+	echo -n "overleaf.sid.$HTTPS_PORT" > "$ENVDIR/COOKIE_NAME"
 fi
 
 # ── Login with ScienceData accounts, for a pod started for a group ──
@@ -160,7 +164,17 @@ if echo "$login" | grep -q '"oidc":true'; then
 		echo -n "$SD_UID" > "$ENVDIR/OVERLEAF_OIDC_IS_ADMIN_FIELD_VALUE"
 	fi
 	echo -n "oidc" > "$ENVDIR/EXTERNAL_AUTH"
-	echo "login: ScienceData accounts, members of group $(field group)"
+	group=$(field group)
+	if [[ -z "$group" ]]; then
+		# Started just for the owner: the login client is not restricted to a
+		# group (the provider cannot restrict to a person), so Overleaf admits
+		# only this ID (oidc_patch.sh)
+		echo -n "$SD_UID" > "$ENVDIR/SD_OWNER_ONLY"
+		echo "login: the owner's ScienceData account ($SD_UID) only"
+	else
+		rm -f "$ENVDIR/SD_OWNER_ONLY"
+		echo "login: ScienceData accounts, members of group $group"
+	fi
 else
 	echo "login: Overleaf's own accounts (${login:-no answer from the Containers app})"
 fi

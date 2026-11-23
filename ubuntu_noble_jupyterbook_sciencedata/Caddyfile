@@ -1,0 +1,15 @@
+# The built book, and the build's log and the Run button's script under /_sciencedata/
+:80
+
+handle_path /_sciencedata/* {
+	root * /var/lib/book/meta
+	file_server
+}
+handle {
+	root * /var/lib/book/site
+	file_server
+}
+
+log {
+	output file /var/log/caddy.log
+}

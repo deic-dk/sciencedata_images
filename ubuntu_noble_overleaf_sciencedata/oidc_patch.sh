@@ -11,6 +11,8 @@
 # shows its text; its "not allowed" path would send the user to sign up).
 # The owner's own account (made before ScienceData login, e.g. restored from a
 # personal pod) gets the ID recorded at start (sciencedata_admin.sh).
+# A pod started just for its owner (SD_OWNER_ONLY = the owner's ID, set by the
+# init script) admits no other ScienceData login at all.
 # Fails the build if the code no longer has the expected shape.
 set -e
 F=/overleaf/services/web/modules/authentication/oidc/app/src/OIDCAuthenticationManager.mjs
@@ -27,6 +29,13 @@ new = ("      // ScienceData (oidc_patch.sh): never link by e-mail - an account 
        "      user = null\n"
        "      if (!user) {")
 assert s.count(old) == 1, "oidc_patch: expected code not found in " + p
+s = s.replace(old, new, 1)
+old = "    const oidcUserId = (attUserId === 'email') ? email : profile[attUserId]\n"
+new = old + ("    // ScienceData (oidc_patch.sh): a pod started just for its owner admits only them\n"
+             "    if (process.env.SD_OWNER_ONLY !== undefined && oidcUserId !== process.env.SD_OWNER_ONLY) {\n"
+             "      throw new Error('This Overleaf is only for its owner: the ScienceData account ' + oidcUserId + ' cannot log in here.')\n"
+             "    }\n")
+assert s.count(old) == 1, "oidc_patch: expected code (oidcUserId) not found in " + p
 open(p, "w").write(s.replace(old, new, 1))
 PY
 grep -q "oidc_patch.sh" "$F"
