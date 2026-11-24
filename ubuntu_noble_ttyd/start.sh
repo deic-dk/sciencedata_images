@@ -39,4 +39,8 @@ ttyd -W -p 7681 -b "/$HASH" -t disableLeaveAlert=true \
   su - sciencedata -c 'tmux new -A -s sciencedata' &
 echo "$HASH/" > /tmp/URI
 
-/usr/sbin/dropbear -p 22 -W 65536 -F -E
+# SSH with keys only; passwords only if a root password was set explicitly
+# (ROOT_PASSWORD, for standalone docker run). The pods' SSH ports get root
+# password guessing from the internet.
+DROPBEAR_AUTH="-s"; [ -n "$ROOT_PASSWORD" ] && DROPBEAR_AUTH=""
+/usr/sbin/dropbear $DROPBEAR_AUTH -p 22 -W 65536 -F -E

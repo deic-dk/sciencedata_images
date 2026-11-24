@@ -241,7 +241,11 @@ sudo -u www php /var/www/moodle/admin/cli/purge_caches.php
 # the Containers page shows "Starting..." until this exists (catalog/wait-for-token)
 echo "$uri" > /tmp/URI
 
-/usr/sbin/dropbear -p 22 -W 65536 -F -E &
+# SSH with keys only; passwords only if a root password was set explicitly
+# (ROOT_PASSWORD, for standalone docker run). The pods' SSH ports get root
+# password guessing from the internet.
+DROPBEAR_AUTH="-s"; [ -n "$ROOT_PASSWORD" ] && DROPBEAR_AUTH=""
+/usr/sbin/dropbear $DROPBEAR_AUTH -p 22 -W 65536 -F -E &
 wait $!
 # dropbear ended by itself: run the hook before the container exits
 gracefulShutdown

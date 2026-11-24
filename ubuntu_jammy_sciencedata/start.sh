@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# This image has no URI to add to the pod's web address: tell run_pod so at once,
+# instead of letting it ask for /tmp/URI for half an hour (and log each miss).
+touch /tmp/URI.none
+
 # SSH access to root
 if [[ -n "$SSH_PUBLIC_KEY" ]]; then
 	echo "$SSH_PUBLIC_KEY" >> /root/.ssh/authorized_keys
@@ -32,4 +36,8 @@ fi
 service cron start
 cd /root
 export HOSTNAME
-/usr/sbin/dropbear -p 22 -W 65536 -F -E
+# SSH with keys only; passwords only if a root password was set explicitly
+# (ROOT_PASSWORD, for standalone docker run). The pods' SSH ports get root
+# password guessing from the internet.
+DROPBEAR_AUTH="-s"; [ -n "$ROOT_PASSWORD" ] && DROPBEAR_AUTH=""
+/usr/sbin/dropbear $DROPBEAR_AUTH -p 22 -W 65536 -F -E

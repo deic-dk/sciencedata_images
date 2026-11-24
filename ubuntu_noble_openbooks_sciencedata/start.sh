@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# This image has no URI to add to the pod's web address: tell run_pod so at once,
+# instead of letting it ask for /tmp/URI for half an hour (and log each miss).
+touch /tmp/URI.none
+
 # SSH access to account with sudo rights - or just set password for root
 if [[ -n "$SSH_PUBLIC_KEY" ]]; then
 	  echo "$SSH_PUBLIC_KEY" >> /home/openbooks/.ssh/authorized_keys
@@ -43,4 +47,8 @@ chmod +x /home/openbooks/bin/*
 IRCNAME=`date | md5sum | cut -c1-8`
 /home/openbooks/openbooks --log --debug server --no-browser-downloads -p 8080 -n o${IRCNAME} --basepath / --persist --dir /home/openbooks/ebooks/ --tls false irc.irchighway.net &
 
-/usr/sbin/dropbear -p 22 -W 65536 -F -E
+# SSH with keys only; passwords only if a root password was set explicitly
+# (ROOT_PASSWORD, for standalone docker run). The pods' SSH ports get root
+# password guessing from the internet.
+DROPBEAR_AUTH="-s"; [ -n "$ROOT_PASSWORD" ] && DROPBEAR_AUTH=""
+/usr/sbin/dropbear $DROPBEAR_AUTH -p 22 -W 65536 -F -E
