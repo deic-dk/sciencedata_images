@@ -133,8 +133,8 @@ fast start). `sciencedata_transcode.php` runs every 5 minutes (cron, one run at 
   original is gone is deleted. Originals found web-ready or failed are remembered by etag
   in `/var/moodledata/.sciencedata_transcode.json`.
 - **The activity plays** the web version if there is one, else the original if browsers can
-  play it; otherwise it says a web version is being prepared and offers the download.
-  (0075, not merged yet: the page then reloads itself every minute.)
+  play it; otherwise it says a web version is being prepared, offers the download and
+  reloads itself every minute until the web version is there.
 
 Measured 2026-11-25: a 3-minute phone video (234 MB `.MOV`) became a 30 MB MP4 (1280x720,
 1.4 Mbit/s) in 51 s. Log: `/var/cache/moodle/transcode.log`.
@@ -149,15 +149,25 @@ size) messages per hour and max(100, 10 x group size) per day, plus a size limit
 
 ## Performance and sizing
 
-Load test 2026-11-25, 4-core node: 200 students logging in and opening the course and the
-folder activity at the same moment - no errors at any level. Ubuntu's default 5 PHP-FPM
-workers gave 21 req/s (~8-10 s per page) with the CPU half idle; 16 workers 35 req/s
-(~5 s), then CPU-bound. PostgreSQL never had more than 4 active connections.
+Load test 2026-11-25: 200 students logging in and opening the course and the folder
+activity at the same moment, 3 rounds - no errors at any level.
 
-- Image (0076, not merged yet): 4 PHP-FPM workers per CPU, 8-64.
-- Manifest (pod_manifests 0028, not merged yet): requests 4 CPUs, so Moodle runs on a node
-  with room (worker1 48 cores, connect, peon141), not on a 4-core node.
+| Node, PHP-FPM workers | Throughput | Course page | Folder activity | Login |
+|---|---|---|---|---|
+| 4 cores, 5 (Ubuntu's default) | 21 req/s | 7.7 s | 10.2 s | 9.5 s |
+| 4 cores, 16 | 35 req/s | 5.2 s | 5.3 s | 8.4 s |
+| worker1 (48 cores), 64 | 89 req/s | 1.3 s | 1.9 s | 2.2 s |
+
+(medians). On 4 cores Moodle was CPU-bound; on worker1 the load stayed below 10 of 48 and
+PostgreSQL below 8 active connections. Hence:
+
+- the image sets 4 PHP-FPM workers per CPU, 8-64 (start.sh, from `nproc` or the pod's
+  CPU limit; the pod log says "PHP-FPM: N workers for M CPUs");
+- the manifest requests 4 CPUs, so Moodle runs on a node with room (worker1 48 cores,
+  connect, peon141), not on a 4-core node;
 - OPcache is on (128 MB).
+
+The folder activity is the slowest page: each view lists the folder live on ScienceData.
 
 ## Updates
 
