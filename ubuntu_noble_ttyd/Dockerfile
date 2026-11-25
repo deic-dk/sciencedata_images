@@ -25,7 +25,6 @@ RUN sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
     sed -i.bak -e 's/^%sudo/#%sudo/' /etc/sudoers && \
     adduser --uid 80 --home /home/sciencedata --disabled-password --gecos '' sciencedata
 
-#RUN echo "sciencedata:secret" | chpasswd
 RUN echo "sciencedata ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/sciencedata && chmod 0440 /etc/sudoers.d/sciencedata
 
 # Configure ssh access

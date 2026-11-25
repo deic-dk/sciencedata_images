@@ -25,7 +25,6 @@ RUN sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
     sed -i.bak -e 's/^%sudo/#%sudo/' /etc/sudoers && \
     adduser --uid 80 --home /home/claude --disabled-password --gecos '' claude
 
-#RUN echo "claude:secret" | chpasswd
 RUN echo "claude ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/claude && chmod 0440 /etc/sudoers.d/claude
 
 # Configure ssh access

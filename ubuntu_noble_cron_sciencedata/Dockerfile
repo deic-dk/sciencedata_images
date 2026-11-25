@@ -26,7 +26,6 @@ RUN sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
     mkdir /home/sciencedata/mnt /home/sciencedata/bin && \
     chown -R sciencedata:sciencedata /home/sciencedata
 
-#RUN echo "sciencedata:secret" | chpasswd
 RUN echo "sciencedata ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/sciencedata && chmod 0440 /etc/sudoers.d/sciencedata
 
 # Configure ssh access

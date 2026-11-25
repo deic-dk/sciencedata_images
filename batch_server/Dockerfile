@@ -45,7 +45,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y locales \
 # Configure keyboard - not necessary
 #RUN DEBIAN_FRONTEND=noninteractive apt-get -y install console-data
 
-#RUN echo "www:secret" | chpasswd
 # No sudo for www-data: Apache and the GridFactory daemons run as www-data and
 # none of them needs it, so anything running as www-data must not become root.
 

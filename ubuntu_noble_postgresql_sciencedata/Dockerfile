@@ -41,7 +41,6 @@ RUN sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
     sed -i.bak -e 's/^%sudo/#%sudo/' /etc/sudoers && \
     adduser --uid $MY_UID --home $MY_HOME --disabled-password --gecos 'Default user' $MY_USER
 
-#RUN echo "www:secret" | chpasswd
 RUN echo "$MY_USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$MY_USER && chmod 0440 /etc/sudoers.d/$MY_USER
 
 # Configure ssh access

@@ -134,7 +134,6 @@ RUN echo "auth requisite pam_deny.so" >> /etc/pam.d/su && \
     chmod g+w /etc/passwd
 
 # Comment out for production image
-RUN echo "$NB_USER:secret" | chpasswd
 RUN echo "$NB_USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$NB_USER && chmod 0440 /etc/sudoers.d/$NB_USER
 
 RUN chown -R $NB_UID:$NB_GID /home/$NB_USER

@@ -26,7 +26,6 @@ RUN sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
     mkdir /home/kavita/ebooks && \
     chown -R kavita:kavita /home/kavita
 
-#RUN echo "kavita:secret" | chpasswd
 RUN echo "kavita ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/kavita && chmod 0440 /etc/sudoers.d/kavita
 
 # Configure ssh access

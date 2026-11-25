@@ -26,7 +26,6 @@ RUN sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
     mkdir /home/openbooks/ebooks && \
     chown -R openbooks:openbooks /home/openbooks
 
-#RUN echo "openbooks:secret" | chpasswd
 RUN echo "openbooks ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/openbooks && chmod 0440 /etc/sudoers.d/openbooks
 
 # Configure ssh access

@@ -75,7 +75,6 @@ RUN echo "auth requisite pam_deny.so" >> /etc/pam.d/su && \
     . fix-permissions $CONDA_DIR
 
 # Comment out for production image
-RUN echo "$NB_USER:secret" | chpasswd
 RUN echo "$NB_USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$NB_USER && chmod 0440 /etc/sudoers.d/$NB_USER
 
 USER $NB_USER

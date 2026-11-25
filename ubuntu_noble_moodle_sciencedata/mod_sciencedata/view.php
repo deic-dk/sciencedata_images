@@ -94,6 +94,9 @@ if ($play !== '' && preg_match(SD_VIDEO, $play)) {
     }
     if (!$hasweb && $src === null) {
         echo $OUTPUT->notification(get_string('webpreparing', 'sciencedata'), 'info');
+        // The transcoding job runs every 5 minutes: look again every minute while
+        // the web version is missing, so the player turns up without a manual reload.
+        $PAGE->requires->js_init_code('setTimeout(function() { window.location.reload(); }, 60000);');
     }
     echo html_writer::tag('p', html_writer::link(new moodle_url('/mod/sciencedata/download.php', ['id' => $cm->id, 'f' => $orig]),
         get_string('downloadoriginal', 'sciencedata')), ['class' => 'mt-2']);

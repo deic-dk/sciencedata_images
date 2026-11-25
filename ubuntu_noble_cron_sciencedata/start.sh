@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# This image has no URI to add to the pod's web address: tell run_pod so at once,
-# instead of letting it ask for /tmp/URI for half an hour (and log each miss).
-touch /tmp/URI.none
-
 # SSH access to account with sudo rights - or just set password for root
 if [[ -n "$SSH_PUBLIC_KEY" ]]; then
 	  echo "$SSH_PUBLIC_KEY" >> /home/sciencedata/.ssh/authorized_keys

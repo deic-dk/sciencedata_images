@@ -24,7 +24,6 @@ RUN sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
     sed -i.bak -e 's/^%sudo/#%sudo/' /etc/sudoers && \
     adduser --uid 80 --home /home/lyrion --disabled-password --gecos '' lyrion
 
-#RUN echo "lyrion:secret" | chpasswd
 RUN echo "lyrion ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/lyrion && chmod 0440 /etc/sudoers.d/lyrion
 
 # Configure ssh access

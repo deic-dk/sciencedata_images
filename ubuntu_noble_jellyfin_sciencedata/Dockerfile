@@ -26,7 +26,6 @@ RUN sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
     mkdir /home/jellyfin/media && \
     chown -R jellyfin:jellyfin /home/jellyfin
 
-#RUN echo "jellyfin:secret" | chpasswd
 RUN echo "jellyfin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/jellyfin && chmod 0440 /etc/sudoers.d/jellyfin
 
 # Configure ssh access

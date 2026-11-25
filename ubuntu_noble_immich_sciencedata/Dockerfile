@@ -101,7 +101,6 @@ RUN sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
     adduser --uid 80 --home $IMMICH_PATH/home --disabled-password --gecos '' immich && \
     chown -R immich:immich $IMMICH_PATH/home
 
-#RUN echo "immich:secret" | chpasswd
 RUN echo "immich ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/immich && chmod 0440 /etc/sudoers.d/immich
 
 # Configure ssh access

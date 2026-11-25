@@ -46,6 +46,21 @@ upload_max_filesize = 4G
 post_max_size = 4G
 max_file_uploads = 100
 EOF
+# PHP-FPM workers from the CPUs this pod gets: Ubuntu's default (5) made Moodle queue
+# requests long before the CPU was busy (load test 2026-11-25, 200 students at once on a
+# 4-core node: 5 workers 21 req/s and ~8 s per page, 16 workers 35 req/s and ~5 s).
+# 4 per core, between 8 and 64; a CPU limit on the pod (cgroup cpu.max) counts first.
+cores=$(nproc)
+if read -r quota period < /sys/fs/cgroup/cpu.max 2>/dev/null && [ "$quota" != "max" ]; then
+	cores=$(( (quota + period - 1) / period ))
+fi
+workers=$(( cores * 4 )); [ $workers -lt 8 ] && workers=8; [ $workers -gt 64 ] && workers=64
+pool=$(ls /etc/php/*/fpm/pool.d/www.conf | head -1)
+sed -i -E "s/^pm.max_children = .*/pm.max_children = $workers/; \
+	s/^pm.start_servers = .*/pm.start_servers = $(( workers / 4 ))/; \
+	s/^pm.min_spare_servers = .*/pm.min_spare_servers = $(( workers / 8 ))/; \
+	s/^pm.max_spare_servers = .*/pm.max_spare_servers = $(( workers / 2 ))/" "$pool"
+echo "PHP-FPM: $workers workers for $cores CPUs"
 service $phpfpm start
 ln -s `basename $(ls /run/php/php*-fpm.sock)` /run/php/php-fpm.sock
 

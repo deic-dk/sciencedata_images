@@ -27,7 +27,6 @@ RUN sed -i.bak -e 's/^%admin/#%admin/' /etc/sudoers && \
     mkdir /home/s3/vgw /home/s3/accounts && \
     chown -R s3:s3 /home/s3
 
-#RUN echo "s3:secret" | chpasswd
 RUN echo "s3 ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/s3 && chmod 0440 /etc/sudoers.d/s3
 
 # Configure ssh access
