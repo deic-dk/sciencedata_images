@@ -27,8 +27,10 @@ ADD Caddyfile /etc/caddy/Caddyfile
 ADD sciencedata_book.sh /usr/local/sbin/sciencedata_book.sh
 ADD sciencedata_book_run.php /usr/local/sbin/sciencedata_book_run.php
 ADD run.js /usr/local/share/sciencedata/run.js
+ADD sciencedata_book_starter.sh /usr/local/sbin/sciencedata_book_starter.sh
+ADD starter /usr/local/share/sciencedata/starter
 ADD start.sh /usr/local/sbin/start.sh
-RUN chmod +x /usr/local/sbin/start.sh /usr/local/sbin/sciencedata_book.sh && \
+RUN chmod +x /usr/local/sbin/start.sh /usr/local/sbin/sciencedata_book.sh /usr/local/sbin/sciencedata_book_starter.sh && \
     mkdir -p /var/lib/book/site /var/lib/book/meta && chown -R www:www /var/lib/book
 
 EXPOSE 22

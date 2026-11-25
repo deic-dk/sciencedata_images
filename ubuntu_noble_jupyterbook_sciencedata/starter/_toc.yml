@@ -1,0 +1,6 @@
+# The table of contents: the pages of the book, in order.
+# A new page: put a .md or .ipynb file in this folder and list it here.
+format: jb-book
+root: intro
+chapters:
+- file: notebook

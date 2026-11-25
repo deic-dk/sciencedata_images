@@ -1,0 +1,11 @@
+# The book's settings - see https://jupyterbook.org/en/stable/customize/config.html
+title: My book
+author: Your name
+
+# Only the pages listed in _toc.yml are built; other files in the folder are left alone
+only_build_toc_files: true
+
+# Notebooks without stored results are run when the book is built:
+# auto (run those missing results) | cache (re-run only changed ones) | off (never run)
+execute:
+  execute_notebooks: auto

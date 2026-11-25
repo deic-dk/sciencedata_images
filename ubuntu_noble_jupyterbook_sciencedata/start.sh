@@ -22,6 +22,9 @@ ENV
 
 /usr/bin/caddy --config /etc/caddy/Caddyfile start
 
+# An empty book folder gets a starter book (written into the owner's files)
+/usr/local/sbin/sciencedata_book_starter.sh
+
 # The book: built at start and again whenever its sources change
 sudo -u www nohup /usr/local/sbin/sciencedata_book.sh >/var/lib/book/meta/watch.log 2>&1 &
 
